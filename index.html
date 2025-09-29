@@ -8,6 +8,11 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <style>
         * { box-sizing: border-box; }
         body { 
@@ -59,6 +64,21 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
+        // Configurar Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAR79k-vcBkosnierK1igpFvm20j_6Uyaw",
+            authDomain: "domi-67785.firebaseapp.com",
+            projectId: "domi-67785",
+            storageBucket: "domi-67785.firebasestorage.app",
+            messagingSenderId: "334983627289",
+            appId: "1:334983627289:web:7dc0737c07f93aa1a76088",
+            measurementId: "G-D4YBMXXSRX"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // SVG Icons
         const Icon = ({ d, className = "w-4 h-4" }) => (
             <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +91,6 @@
             trending: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
             package: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4M4 7l8 4M4 7v10l8 4m0-10v10",
             users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2m18 0-3-3m-8-8a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
-            mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0m-5 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
             star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2",
             clock: "M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
             dollar: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
@@ -128,75 +147,50 @@
                 setNotifications(prev => [...prev, { id, message, type }]);
             }, []);
 
-            const saveToStorage = useCallback((key, data) => {
-                try {
-                    localStorage.setItem(key, JSON.stringify(data));
-                } catch (error) {
-                    console.error(`Error guardando ${key}:`, error);
-                }
-            }, []);
-
+            // Cargar datos desde Firebase
             useEffect(() => {
-                const loadData = () => {
+                const loadData = async () => {
                     try {
-                        // Cargar datos del localStorage
-                        const savedOrders = localStorage.getItem('deliveryOrders_v2');
-                        const savedPersons = localStorage.getItem('deliveryPersons_v2');
-                        const savedLocations = localStorage.getItem('deliveryLocations_v2');
+                        console.log('=== CARGANDO DESDE FIREBASE ===');
                         
-                        console.log('=== INICIO DEBUG ===');
-                        console.log('localStorage deliveryPersons_v2:', savedPersons);
-                        
-                        let persons = [];
-                        
-                        if (savedOrders) {
-                            const parsedOrders = JSON.parse(savedOrders);
-                            setOrders(parsedOrders);
-                            console.log('Pedidos cargados:', parsedOrders.length);
-                        }
-                        
-                        if (savedPersons) {
-                            persons = JSON.parse(savedPersons);
-                            setDeliveryPersons(persons);
-                            console.log('Repartidores cargados:', persons);
-                        } else {
-                            console.log('NO HAY REPARTIDORES EN LOCALSTORAGE');
-                        }
-                        
-                        if (savedLocations) {
-                            setLocations(JSON.parse(savedLocations));
-                        }
-                        
+                        // Cargar pedidos
+                        const ordersSnapshot = await db.collection('orders').get();
+                        const ordersData = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setOrders(ordersData);
+                        console.log('Pedidos cargados:', ordersData.length);
+
+                        // Cargar repartidores
+                        const personsSnapshot = await db.collection('deliveryPersons').get();
+                        const personsData = personsSnapshot.docs.map(doc => ({ 
+                            id: doc.id, 
+                            ...doc.data(),
+                            // Convertir el ID string de Firestore a número para compatibilidad
+                            numericId: doc.data().numericId || doc.id
+                        }));
+                        setDeliveryPersons(personsData);
+                        console.log('Repartidores cargados:', personsData);
+
+                        // Cargar ubicaciones
+                        const locationsSnapshot = await db.collection('locations').get();
+                        const locationsData = {};
+                        locationsSnapshot.docs.forEach(doc => {
+                            locationsData[doc.id] = doc.data();
+                        });
+                        setLocations(locationsData);
+
                         // Verificar parámetro de URL
                         const urlParams = new URLSearchParams(window.location.search);
                         const deliveryPersonId = urlParams.get('repartidor');
                         
-                        console.log('URL actual:', window.location.href);
                         console.log('Parámetro repartidor:', deliveryPersonId);
-                        
+
                         if (deliveryPersonId) {
-                            const personId = Number(deliveryPersonId);
-                            console.log('Buscando repartidor con ID:', personId);
-                            console.log('Tipo de ID:', typeof personId);
+                            // Buscar por numericId
+                            const person = personsData.find(p => p.numericId === deliveryPersonId);
                             
-                            if (persons.length === 0) {
-                                console.error('PROBLEMA: No hay repartidores en localStorage');
-                                setTimeout(() => {
-                                    showNotification('No hay repartidores registrados en el sistema', 'error');
-                                    setLoading(false);
-                                }, 1000);
-                                return;
-                            }
-                            
-                            const person = persons.find(p => {
-                                console.log(`Comparando: ${p.id} (${typeof p.id}) === ${personId} (${typeof personId})`);
-                                return p.id === personId;
-                            });
-                            
-                            console.log('Resultado búsqueda:', person);
+                            console.log('Repartidor encontrado:', person);
                             
                             if (person) {
-                                console.log('REPARTIDOR ENCONTRADO:', person.name);
                                 setIsDeliveryPersonView(true);
                                 setCurrentDeliveryPerson(person);
                                 setTimeout(() => {
@@ -205,42 +199,70 @@
                                 }, 1000);
                             } else {
                                 console.error('REPARTIDOR NO ENCONTRADO');
-                                console.log('IDs disponibles:', persons.map(p => p.id));
+                                console.log('IDs disponibles:', personsData.map(p => p.numericId));
                                 setTimeout(() => {
-                                    showNotification('Repartidor no encontrado. Verifica el enlace.', 'error');
+                                    showNotification('Repartidor no encontrado', 'error');
                                     setLoading(false);
                                 }, 1000);
                             }
                         } else {
-                            console.log('Sin parámetro de repartidor - Modo administrador');
                             setTimeout(() => {
                                 showNotification('Sistema cargado correctamente', 'success');
                                 setLoading(false);
-                            }, 1500);
+                            }, 1000);
                         }
-                        
-                        console.log('=== FIN DEBUG ===');
                     } catch (error) {
                         console.error('ERROR CARGANDO DATOS:', error);
-                        showNotification('Error cargando datos', 'error');
+                        showNotification('Error cargando datos: ' + error.message, 'error');
                         setLoading(false);
                     }
                 };
-                
+
                 loadData();
             }, [showNotification]);
 
+            // Listeners en tiempo real para pedidos
             useEffect(() => {
-                if (!loading) saveToStorage('deliveryOrders_v2', orders);
-            }, [orders, loading, saveToStorage]);
+                const unsubscribe = db.collection('orders').onSnapshot(snapshot => {
+                    const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setOrders(ordersData);
+                }, error => {
+                    console.error('Error en listener de pedidos:', error);
+                });
 
-            useEffect(() => {
-                if (!loading) saveToStorage('deliveryPersons_v2', deliveryPersons);
-            }, [deliveryPersons, loading, saveToStorage]);
+                return () => unsubscribe();
+            }, []);
 
+            // Listeners en tiempo real para repartidores
             useEffect(() => {
-                if (!loading) saveToStorage('deliveryLocations_v2', locations);
-            }, [locations, loading, saveToStorage]);
+                const unsubscribe = db.collection('deliveryPersons').onSnapshot(snapshot => {
+                    const personsData = snapshot.docs.map(doc => ({ 
+                        id: doc.id, 
+                        ...doc.data(),
+                        numericId: doc.data().numericId || doc.id
+                    }));
+                    setDeliveryPersons(personsData);
+                }, error => {
+                    console.error('Error en listener de repartidores:', error);
+                });
+
+                return () => unsubscribe();
+            }, []);
+
+            // Listeners en tiempo real para ubicaciones
+            useEffect(() => {
+                const unsubscribe = db.collection('locations').onSnapshot(snapshot => {
+                    const locationsData = {};
+                    snapshot.docs.forEach(doc => {
+                        locationsData[doc.id] = doc.data();
+                    });
+                    setLocations(locationsData);
+                }, error => {
+                    console.error('Error en listener de ubicaciones:', error);
+                });
+
+                return () => unsubscribe();
+            }, []);
 
             const formatNumber = (num) => {
                 if (!num) return '0';
@@ -279,54 +301,65 @@
                 };
             }, [orders]);
 
-            const handleAddOrder = useCallback(() => {
+            const handleAddOrder = useCallback(async () => {
                 if (!newOrder.customerName?.trim() || !newOrder.address?.trim() || !newOrder.orderValue) {
                     showNotification('Completa los campos obligatorios', 'warning');
                     return;
                 }
 
-                const order = {
-                    id: Date.now(),
-                    ...newOrder,
-                    customerName: newOrder.customerName.trim(),
-                    address: newOrder.address.trim(),
-                    orderValue: parseFloat(newOrder.orderValue),
-                    deliveryFee: parseFloat(newOrder.deliveryFee || 0),
-                    status: 'pendiente',
-                    createdAt: new Date().toLocaleString(),
-                    updatedAt: new Date().toLocaleString()
-                };
+                try {
+                    const order = {
+                        ...newOrder,
+                        customerName: newOrder.customerName.trim(),
+                        address: newOrder.address.trim(),
+                        orderValue: parseFloat(newOrder.orderValue),
+                        deliveryFee: parseFloat(newOrder.deliveryFee || 0),
+                        status: 'pendiente',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
 
-                setOrders(prev => [order, ...prev]);
-                setNewOrder({
-                    customerName: '', address: '', orderValue: '', deliveryFee: '', 
-                    deliveryPerson: '', city: '', customerPhone: ''
-                });
-                
-                showNotification(`Pedido creado para ${order.customerName}`, 'success');
+                    await db.collection('orders').add(order);
+                    
+                    setNewOrder({
+                        customerName: '', address: '', orderValue: '', deliveryFee: '', 
+                        deliveryPerson: '', city: '', customerPhone: ''
+                    });
+                    
+                    showNotification(`Pedido creado para ${order.customerName}`, 'success');
+                } catch (error) {
+                    console.error('Error creando pedido:', error);
+                    showNotification('Error creando pedido', 'error');
+                }
             }, [newOrder, showNotification]);
 
-            const handleAddDeliveryPerson = useCallback(() => {
+            const handleAddDeliveryPerson = useCallback(async () => {
                 if (!newDeliveryPerson.name?.trim()) {
                     showNotification('Ingresa el nombre del repartidor', 'warning');
                     return;
                 }
 
-                const person = {
-                    id: Date.now(),
-                    ...newDeliveryPerson,
-                    name: newDeliveryPerson.name.trim(),
-                    createdAt: new Date().toLocaleString(),
-                    totalDeliveries: 0
-                };
+                try {
+                    const numericId = Date.now().toString();
+                    const person = {
+                        ...newDeliveryPerson,
+                        name: newDeliveryPerson.name.trim(),
+                        numericId: numericId,
+                        createdAt: new Date().toISOString(),
+                        totalDeliveries: 0
+                    };
 
-                setDeliveryPersons(prev => [person, ...prev]);
-                setNewDeliveryPerson({ name: '', phone: '+57 ', vehicle: 'moto' });
-                
-                showNotification(`Repartidor ${person.name} agregado`, 'success');
+                    await db.collection('deliveryPersons').add(person);
+                    
+                    setNewDeliveryPerson({ name: '', phone: '+57 ', vehicle: 'moto' });
+                    showNotification(`Repartidor ${person.name} agregado`, 'success');
+                } catch (error) {
+                    console.error('Error agregando repartidor:', error);
+                    showNotification('Error agregando repartidor', 'error');
+                }
             }, [newDeliveryPerson, showNotification]);
 
-            const handleDeleteDeliveryPerson = useCallback((personId) => {
+            const handleDeleteDeliveryPerson = useCallback(async (personId) => {
                 const person = deliveryPersons.find(p => p.id === personId);
                 if (!person) return;
 
@@ -340,12 +373,17 @@
                 }
 
                 if (confirm(`¿Eliminar a ${person.name}? Esta acción no se puede deshacer.`)) {
-                    setDeliveryPersons(prev => prev.filter(p => p.id !== personId));
-                    showNotification(`Repartidor ${person.name} eliminado`, 'info');
+                    try {
+                        await db.collection('deliveryPersons').doc(personId).delete();
+                        showNotification(`Repartidor ${person.name} eliminado`, 'info');
+                    } catch (error) {
+                        console.error('Error eliminando repartidor:', error);
+                        showNotification('Error eliminando repartidor', 'error');
+                    }
                 }
             }, [deliveryPersons, orders, showNotification]);
 
-            const handleEditDeliveryPerson = useCallback((personId) => {
+            const handleEditDeliveryPerson = useCallback(async (personId) => {
                 const person = deliveryPersons.find(p => p.id === personId);
                 if (!person) return;
 
@@ -353,36 +391,34 @@
                 const newPhone = prompt('Nuevo teléfono:', person.phone);
 
                 if (newName && newName.trim()) {
-                    setDeliveryPersons(prev => prev.map(p => 
-                        p.id === personId ? { ...p, name: newName.trim(), phone: newPhone || p.phone } : p
-                    ));
-                    showNotification('Repartidor actualizado correctamente', 'success');
+                    try {
+                        await db.collection('deliveryPersons').doc(personId).update({
+                            name: newName.trim(),
+                            phone: newPhone || person.phone
+                        });
+                        showNotification('Repartidor actualizado correctamente', 'success');
+                    } catch (error) {
+                        console.error('Error actualizando repartidor:', error);
+                        showNotification('Error actualizando repartidor', 'error');
+                    }
                 }
             }, [deliveryPersons, showNotification]);
 
             const sendWhatsAppInvitation = useCallback((person) => {
                 const baseUrl = window.location.origin + window.location.pathname;
-                const personalUrl = `${baseUrl}?repartidor=${person.id}`;
+                const personalUrl = `${baseUrl}?repartidor=${person.numericId}`;
                 
                 const message = encodeURIComponent(
                     `Hola ${person.name}\n\n` +
                     `Has sido registrado como repartidor en nuestro sistema de domicilios.\n\n` +
                     `TU ENLACE PERSONAL:\n${personalUrl}\n\n` +
-                    `INSTRUCCIONES DE ACCESO:\n\n` +
+                    `INSTRUCCIONES:\n` +
                     `1. Abre el enlace en tu celular\n` +
                     `2. Autoriza el acceso a tu ubicación GPS\n` +
                     `3. Acepta pedidos desde tu panel\n` +
                     `4. Contacta clientes por WhatsApp\n` +
                     `5. Marca entregas como completadas\n\n` +
-                    `MONITOREO GPS:\n` +
-                    `- Tu ubicación solo se comparte cuando aceptes un pedido\n` +
-                    `- Puedes activar/desactivar el GPS cuando quieras\n` +
-                    `- El seguimiento es solo durante las entregas activas\n\n` +
-                    `IMPORTANTE:\n` +
-                    `- Guarda este enlace en tus favoritos\n` +
-                    `- Solo tú puedes ver tus pedidos asignados\n` +
-                    `- Mantén el GPS activo durante entregas\n\n` +
-                    `¿Tienes dudas? Escríbeme`
+                    `Guarda este enlace en tus favoritos`
                 );
 
                 const cleanPhone = person.phone.replace(/\D/g, '');
@@ -396,32 +432,40 @@
                 }
             }, [showNotification]);
 
-            const updateOrderStatus = useCallback((orderId, newStatus) => {
-                setOrders(prev => prev.map(o => 
-                    o.id === orderId ? { ...o, status: newStatus, updatedAt: new Date().toLocaleString() } : o
-                ));
+            const updateOrderStatus = useCallback(async (orderId, newStatus) => {
+                try {
+                    await db.collection('orders').doc(orderId).update({
+                        status: newStatus,
+                        updatedAt: new Date().toISOString()
+                    });
 
-                const messages = {
-                    'en_transito': 'Pedido enviado',
-                    'entregado': 'Pedido completado'
-                };
-                
-                if (messages[newStatus]) showNotification(messages[newStatus], 'success');
+                    const messages = {
+                        'en_transito': 'Pedido enviado',
+                        'entregado': 'Pedido completado'
+                    };
+                    
+                    if (messages[newStatus]) showNotification(messages[newStatus], 'success');
+                } catch (error) {
+                    console.error('Error actualizando estado:', error);
+                    showNotification('Error actualizando pedido', 'error');
+                }
             }, [showNotification]);
 
-            const completeDelivery = useCallback((orderId, deliveryTime, rating) => {
-                setOrders(prev => prev.map(o => 
-                    o.id === orderId ? { 
-                        ...o, 
-                        status: 'entregado', 
-                        actualDeliveryTime: deliveryTime, 
-                        rating,
-                        completedAt: new Date().toLocaleString(),
-                        updatedAt: new Date().toLocaleString()
-                    } : o
-                ));
-                
-                showNotification('Entrega completada exitosamente', 'success');
+            const completeDelivery = useCallback(async (orderId, deliveryTime, rating) => {
+                try {
+                    await db.collection('orders').doc(orderId).update({
+                        status: 'entregado',
+                        actualDeliveryTime: deliveryTime,
+                        rating: rating,
+                        completedAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                    
+                    showNotification('Entrega completada exitosamente', 'success');
+                } catch (error) {
+                    console.error('Error completando entrega:', error);
+                    showNotification('Error completando entrega', 'error');
+                }
             }, [showNotification]);
 
             const startLocationTracking = useCallback(() => {
@@ -434,18 +478,19 @@
                 showNotification('Rastreo GPS activado', 'info');
 
                 const watchId = navigator.geolocation.watchPosition(
-                    (position) => {
+                    async (position) => {
                         const newLocation = {
                             lat: position.coords.latitude,
                             lng: position.coords.longitude,
-                            timestamp: new Date().toLocaleString()
+                            timestamp: new Date().toISOString()
                         };
                         
                         if (currentDeliveryPerson) {
-                            setLocations(prev => ({
-                                ...prev,
-                                [currentDeliveryPerson.id]: newLocation
-                            }));
+                            try {
+                                await db.collection('locations').doc(currentDeliveryPerson.id).set(newLocation);
+                            } catch (error) {
+                                console.error('Error guardando ubicación:', error);
+                            }
                         }
                     },
                     (error) => {
@@ -690,7 +735,7 @@
                                                         <h4 className="font-bold text-gray-900">{order.customerName}</h4>
                                                         <p className="text-sm text-gray-600">{order.address}</p>
                                                         {order.completedAt && (
-                                                            <p className="text-xs text-gray-500 mt-1">{order.completedAt}</p>
+                                                            <p className="text-xs text-gray-500 mt-1">{new Date(order.completedAt).toLocaleString()}</p>
                                                         )}
                                                     </div>
                                                     <div className="text-right">
@@ -738,7 +783,7 @@
                                     </div>
                                     <div>
                                         <h1 className="text-3xl font-bold text-gray-900">Control de Domicilios</h1>
-                                        <p className="text-sm text-gray-600">Sistema de gestión profesional v2.0</p>
+                                        <p className="text-sm text-gray-600">Sistema de gestión profesional v2.0 + Firebase</p>
                                     </div>
                                 </div>
                             </div>
@@ -777,7 +822,7 @@
                                         Dashboard de Control Profesional
                                     </h2>
                                     <p className="text-gray-600 text-lg max-w-3xl mx-auto">
-                                        Gestiona tus domicilios con seguimiento en tiempo real y control total de tu operación.
+                                        Gestiona tus domicilios con seguimiento en tiempo real y sincronización en la nube.
                                     </p>
                                 </div>
 
@@ -867,6 +912,16 @@
                                             />
                                         </div>
                                         <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Cliente</label>
+                                            <input
+                                                type="text"
+                                                placeholder="+57 300 123 4567"
+                                                value={newOrder.customerPhone}
+                                                onChange={(e) => setNewOrder({...newOrder, customerPhone: e.target.value})}
+                                                className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                            />
+                                        </div>
+                                        <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Repartidor</label>
                                             <select
                                                 value={newOrder.deliveryPerson}
@@ -904,6 +959,7 @@
                                                 <tr>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dirección</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Repartidor</th>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
@@ -912,7 +968,7 @@
                                             <tbody className="bg-white divide-y divide-gray-200">
                                                 {orders.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan="5" className="px-6 py-12 text-center">
+                                                        <td colSpan="6" className="px-6 py-12 text-center">
                                                             <Icon d={icons.package} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                                             <p className="text-gray-500 text-lg">No hay pedidos registrados</p>
                                                         </td>
@@ -922,10 +978,14 @@
                                                         <tr key={order.id} className="hover:bg-gray-50">
                                                             <td className="px-6 py-4 whitespace-nowrap">
                                                                 <div className="font-medium text-gray-900">{order.customerName}</div>
-                                                                <div className="text-xs text-gray-500">{order.createdAt}</div>
+                                                                <div className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</div>
                                                             </td>
                                                             <td className="px-6 py-4">
                                                                 <div className="text-sm text-gray-900">{order.address}</div>
+                                                                {order.city && <div className="text-xs text-gray-500">{order.city}</div>}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm text-gray-900">{order.deliveryPerson || 'Sin asignar'}</div>
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap">
                                                                 <div className="text-sm font-medium text-gray-900">${formatNumber(order.orderValue)}</div>
@@ -1022,7 +1082,8 @@
                                             onClick={handleAddDeliveryPerson}
                                             className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center space-x-2 shadow-lg"
                                         >
-                                            <Icon d={icons.plus} className="w-4 h-4" />
+                                            <Icon d={icons.plus} className="
+											<Icon d={icons.plus} className="w-4 h-4" />
                                             <span>Agregar Repartidor</span>
                                         </button>
                                     </div>
