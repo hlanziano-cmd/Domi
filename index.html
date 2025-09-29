@@ -145,24 +145,33 @@
                         const deliveryPersonId = urlParams.get('repartidor');
                         
                         const savedOrders = localStorage.getItem('deliveryOrders_v2');
-                        const savedPersons = localStorage.getItem('deliveryPersons_v2');
+                        const savedPersons = localStorage.getItem('deliveryOrders_v2');
                         const savedLocations = localStorage.getItem('deliveryLocations_v2');
                         
                         if (savedOrders) setOrders(JSON.parse(savedOrders));
+                        
+                        let persons = [];
                         if (savedPersons) {
-                            const persons = JSON.parse(savedPersons);
+                            persons = JSON.parse(savedPersons);
                             setDeliveryPersons(persons);
+                        }
+                        
+                        if (savedLocations) setLocations(JSON.parse(savedLocations));
+                        
+                        // Verificar si hay un ID de repartidor en la URL
+                        if (deliveryPersonId) {
+                            const personId = parseInt(deliveryPersonId, 10);
+                            const person = persons.find(p => p.id === personId);
                             
-                            if (deliveryPersonId) {
-                                const person = persons.find(p => p.id === parseInt(deliveryPersonId));
-                                if (person) {
-                                    setIsDeliveryPersonView(true);
-                                    setCurrentDeliveryPerson(person);
-                                    showNotification(`Bienvenido ${person.name}`, 'success');
-                                } else {
-                                    showNotification('Repartidor no encontrado', 'error');
-                                }
+                            if (person) {
+                                setIsDeliveryPersonView(true);
+                                setCurrentDeliveryPerson(person);
+                                showNotification(`Bienvenido ${person.name}`, 'success');
+                            } else {
+                                showNotification('Repartidor no encontrado. Verifica el enlace.', 'error');
                             }
+                        } else {
+                            showNotification('Sistema cargado correctamente', 'success');
                         }
                         if (savedLocations) setLocations(JSON.parse(savedLocations));
 
