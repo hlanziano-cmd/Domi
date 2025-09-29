@@ -137,50 +137,91 @@
             }, []);
 
             useEffect(() => {
-                const loadData = async () => {
+                const loadData = () => {
                     try {
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                        
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const deliveryPersonId = urlParams.get('repartidor');
-                        
+                        // Cargar datos del localStorage
                         const savedOrders = localStorage.getItem('deliveryOrders_v2');
-                        const savedPersons = localStorage.getItem('deliveryOrders_v2');
+                        const savedPersons = localStorage.getItem('deliveryPersons_v2');
                         const savedLocations = localStorage.getItem('deliveryLocations_v2');
                         
-                        if (savedOrders) setOrders(JSON.parse(savedOrders));
+                        console.log('=== INICIO DEBUG ===');
+                        console.log('localStorage deliveryPersons_v2:', savedPersons);
                         
                         let persons = [];
+                        
+                        if (savedOrders) {
+                            const parsedOrders = JSON.parse(savedOrders);
+                            setOrders(parsedOrders);
+                            console.log('Pedidos cargados:', parsedOrders.length);
+                        }
+                        
                         if (savedPersons) {
                             persons = JSON.parse(savedPersons);
                             setDeliveryPersons(persons);
+                            console.log('Repartidores cargados:', persons);
+                        } else {
+                            console.log('NO HAY REPARTIDORES EN LOCALSTORAGE');
                         }
                         
-                        if (savedLocations) setLocations(JSON.parse(savedLocations));
+                        if (savedLocations) {
+                            setLocations(JSON.parse(savedLocations));
+                        }
                         
-                        // Verificar si hay un ID de repartidor en la URL
+                        // Verificar parámetro de URL
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const deliveryPersonId = urlParams.get('repartidor');
+                        
+                        console.log('URL actual:', window.location.href);
+                        console.log('Parámetro repartidor:', deliveryPersonId);
+                        
                         if (deliveryPersonId) {
-                            const personId = parseInt(deliveryPersonId, 10);
-                            const person = persons.find(p => p.id === personId);
+                            const personId = Number(deliveryPersonId);
+                            console.log('Buscando repartidor con ID:', personId);
+                            console.log('Tipo de ID:', typeof personId);
+                            
+                            if (persons.length === 0) {
+                                console.error('PROBLEMA: No hay repartidores en localStorage');
+                                setTimeout(() => {
+                                    showNotification('No hay repartidores registrados en el sistema', 'error');
+                                    setLoading(false);
+                                }, 1000);
+                                return;
+                            }
+                            
+                            const person = persons.find(p => {
+                                console.log(`Comparando: ${p.id} (${typeof p.id}) === ${personId} (${typeof personId})`);
+                                return p.id === personId;
+                            });
+                            
+                            console.log('Resultado búsqueda:', person);
                             
                             if (person) {
+                                console.log('REPARTIDOR ENCONTRADO:', person.name);
                                 setIsDeliveryPersonView(true);
                                 setCurrentDeliveryPerson(person);
-                                showNotification(`Bienvenido ${person.name}`, 'success');
+                                setTimeout(() => {
+                                    showNotification(`Bienvenido ${person.name}`, 'success');
+                                    setLoading(false);
+                                }, 1000);
                             } else {
-                                showNotification('Repartidor no encontrado. Verifica el enlace.', 'error');
+                                console.error('REPARTIDOR NO ENCONTRADO');
+                                console.log('IDs disponibles:', persons.map(p => p.id));
+                                setTimeout(() => {
+                                    showNotification('Repartidor no encontrado. Verifica el enlace.', 'error');
+                                    setLoading(false);
+                                }, 1000);
                             }
                         } else {
-                            showNotification('Sistema cargado correctamente', 'success');
+                            console.log('Sin parámetro de repartidor - Modo administrador');
+                            setTimeout(() => {
+                                showNotification('Sistema cargado correctamente', 'success');
+                                setLoading(false);
+                            }, 1500);
                         }
-                        if (savedLocations) setLocations(JSON.parse(savedLocations));
-
-                        if (!deliveryPersonId) {
-                            showNotification('Sistema cargado correctamente', 'success');
-                        }
-                        setLoading(false);
+                        
+                        console.log('=== FIN DEBUG ===');
                     } catch (error) {
-                        console.error('Error cargando datos:', error);
+                        console.error('ERROR CARGANDO DATOS:', error);
                         showNotification('Error cargando datos', 'error');
                         setLoading(false);
                     }
