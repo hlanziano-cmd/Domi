@@ -195,6 +195,8 @@
             const [locations, setLocations] = useState({});
             const [loading, setLoading] = useState(true);
             const [notifications, setNotifications] = useState([]);
+            const [isDeliveryPersonView, setIsDeliveryPersonView] = useState(false);
+            const [currentDeliveryPerson, setCurrentDeliveryPerson] = useState(null);
 
             const [newOrder, setNewOrder] = useState({
                 customerName: '', address: '', orderValue: '', deliveryFee: '', 
