@@ -89,30 +89,55 @@
                 setNotifications(prev => [...prev, { id, message, type }]);
             }, []);
 
-            // Cargar datos iniciales
+            // Cargar datos iniciales con persistencia mejorada
             useEffect(() => {
                 const loadData = async () => {
                     try {
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         
-                        const savedOrders = localStorage.getItem('deliveryOrders_v5');
-                        const savedPersons = localStorage.getItem('deliveryPersons_v5');
+                        // Intentar cargar desde localStorage con múltiples claves
+                        let savedOrders = localStorage.getItem('deliveryOrders_v5') || 
+                                         localStorage.getItem('deliveryOrders_v4') || 
+                                         localStorage.getItem('deliveryOrders');
+                        let savedPersons = localStorage.getItem('deliveryPersons_v5') || 
+                                          localStorage.getItem('deliveryPersons_v4') || 
+                                          localStorage.getItem('deliveryPersons');
                         
                         if (savedOrders) setOrders(JSON.parse(savedOrders));
                         if (savedPersons) setDeliveryPersons(JSON.parse(savedPersons));
 
-                        // Verificar vista repartidor
+                        // Detectar parámetro repartidor con múltiples métodos
+                        let repartidorId = null;
                         const urlParams = new URLSearchParams(window.location.search);
-                        const repartidorId = urlParams.get('repartidor');
+                        repartidorId = urlParams.get('repartidor');
                         
-                        if (repartidorId && savedPersons) {
+                        if (!repartidorId && window.location.search) {
+                            const match = window.location.href.match(/[?&]repartidor=([^&]+)/);
+                            if (match) repartidorId = match[1];
+                        }
+                        
+                        console.log('URL:', window.location.href);
+                        console.log('Parámetro repartidor:', repartidorId);
+                        
+                        if (repartidorId) {
                             setIsDeliveryPersonView(true);
-                            const persons = JSON.parse(savedPersons);
-                            const person = persons.find(p => p.id == repartidorId);
-                            if (person) {
-                                setCurrentDeliveryPerson(person);
-                                showNotification(`Bienvenido ${person.name}`);
-                            }
+                            
+                            // Esperar a que los datos estén disponibles
+                            setTimeout(() => {
+                                const currentPersons = JSON.parse(localStorage.getItem('deliveryPersons_v5') || '[]');
+                                console.log('Repartidores disponibles:', currentPersons);
+                                
+                                const person = currentPersons.find(p => p.id.toString() === repartidorId.toString());
+                                console.log('Repartidor encontrado:', person);
+                                
+                                if (person) {
+                                    setCurrentDeliveryPerson(person);
+                                    showNotification(`Bienvenido ${person.name}`);
+                                } else {
+                                    showNotification('Repartidor no encontrado - refresca la página', 'warning');
+                                    console.log('IDs disponibles:', currentPersons.map(p => p.id));
+                                }
+                            }, 100);
                         }
                         
                         setLoading(false);
