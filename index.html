@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Domicilios - Sistema Profesional</title>
-    
-    <!-- Firebase PRIMERO -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
-    <!-- Luego React -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <style>
         * { box-sizing: border-box; }
@@ -41,908 +39,1265 @@
         }
         .btn-primary:hover { 
             transform: translateY(-1px); 
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); 
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .notification { 
-            position: fixed; top: 20px; right: 20px; z-index: 1000; 
-            color: white; padding: 12px 16px; 
-            border-radius: 8px; font-size: 14px; font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            animation: slideIn 0.3s ease-out;
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
         }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .bg-green-500 { background-color: #10B981; }
-        .bg-red-500 { background-color: #EF4444; }
-        .bg-blue-500 { background-color: #3B82F6; }
-        .bg-yellow-500 { background-color: #F59E0B; }
+        .whatsapp-btn:hover {
+            background: linear-gradient(135deg, #128C7E 0%, #075E54 100%);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: #FEF3C7; color: #92400E; }
+        .status-in-transit { background: #DBEAFE; color: #1E40AF; }
+        .status-delivered { background: #D1FAE5; color: #065F46; }
+        .status-cancelled { background: #FEE2E2; color: #991B1B; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .gps-active {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .timer-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #3b82f6;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+        .waitlist-item {
+            position: relative;
+            padding-left: 40px;
+        }
+        .waitlist-number {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .gps-required-warning {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
     </style>
 </head>
 <body>
-    <div id="root">
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Iniciando Sistema de Control de Domicilios...</p>
-        </div>
-    </div>
-
+    <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect } = React;
 
-        // Verificar Firebase
-        if (typeof firebase === 'undefined') {
-            document.getElementById('root').innerHTML = '<div class="loading"><p style="color: red;">Error: Firebase no carg√≥. Recarga la p√°gina.</p></div>';
-            throw new Error('Firebase no disponible');
-        }
+        // ConfiguraciÛn de Firebase - REEMPLAZA CON TUS CREDENCIALES
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            authDomain: "tu-proyecto.firebaseapp.com",
+            databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890abcdef"
+        };
 
         // Inicializar Firebase
-        firebase.initializeApp({
-            apiKey: "AIzaSyAR79k-vcBkosnierK1igpFvm20j_6Uyaw",
-            authDomain: "domi-67785.firebaseapp.com",
-            projectId: "domi-67785",
-            storageBucket: "domi-67785.firebasestorage.app",
-            messagingSenderId: "334983627289",
-            appId: "1:334983627289:web:7dc0737c07f93aa1a76088"
-        });
-
-        const db = firebase.firestore();
-        console.log('Firebase OK');
-
-        // Componentes
-        const Icon = ({ d, className = "w-4 h-4", style }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={style}>
-                <path d={d} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        );
-
-        const icons = {
-            plus: "M12 5v14m7-7H5",
-            trending: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
-            package: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4M4 7l8 4M4 7v10l8 4m0-10v10",
-            users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2m18 0-3-3m-8-8a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
-            star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2",
-            clock: "M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
-            dollar: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
-            smartphone: "M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 16h.01",
-            edit: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7m-9.5-9.5L21 3l-9.5 9.5-4 1 1-4Z",
-            trash: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6",
-            send: "M22 2L11 13m11-11L15 22l-4-9-9-4 20-9",
-            alert: "M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0",
-            mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0m-5 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
-            close: "M18 6L6 18M6 6l12 12"
-        };
-
-        const Notification = ({ message, type, onClose }) => {
-            useEffect(() => {
-                const t = setTimeout(onClose, 3000);
-                return () => clearTimeout(t);
-            }, [onClose]);
-            return <div className={`notification bg-${type}-500`}>{message}</div>;
-        };
+        let database;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+        } catch (error) {
+            console.error("Error inicializando Firebase:", error);
+        }
 
         const DeliverySystem = () => {
-            const [activeTab, setActiveTab] = useState('dashboard');
+            const [loading, setLoading] = useState(true);
             const [orders, setOrders] = useState([]);
             const [deliveryPersons, setDeliveryPersons] = useState([]);
-            const [locations, setLocations] = useState({});
-            const [loading, setLoading] = useState(true);
-            const [notifications, setNotifications] = useState([]);
+            const [waitlist, setWaitlist] = useState([]);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [showModal, setShowModal] = useState(false);
+            const [modalType, setModalType] = useState('');
+            const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+            const [filterDate, setFilterDate] = useState('');
             const [isDeliveryPersonView, setIsDeliveryPersonView] = useState(false);
             const [currentDeliveryPerson, setCurrentDeliveryPerson] = useState(null);
+            const [deliveryPersonLocation, setDeliveryPersonLocation] = useState({});
             const [isTrackingLocation, setIsTrackingLocation] = useState(false);
-            const [viewingLocation, setViewingLocation] = useState(null);
-            const [newOrder, setNewOrder] = useState({
-                customerName: '', address: '', orderValue: '', deliveryFee: '', 
-                deliveryPerson: '', city: '', customerPhone: ''
-            });
-            const [newDeliveryPerson, setNewDeliveryPerson] = useState({
-                name: '', phone: '+57 ', vehicle: 'moto'
+            const [watchId, setWatchId] = useState(null);
+            const [activeTimers, setActiveTimers] = useState({});
+
+            const [formData, setFormData] = useState({
+                customerName: '',
+                customerPhone: '',
+                address: '',
+                orderValue: '',
+                deliveryPerson: '',
+                personName: '',
+                personPhone: ''
             });
 
-            const colombianCities = ['Bogot√°', 'Medell√≠n', 'Cali', 'Barranquilla', 'Cartagena', 'C√∫cuta', 'Bucaramanga', 'Pereira', 'Santa Marta', 'Ibagu√©'];
+            // Sincronizar con Firebase o usar localStorage como fallback
+            useEffect(() => {
+                if (!database) {
+                    // Fallback a localStorage si Firebase no est· configurado
+                    const savedOrders = localStorage.getItem('deliveryOrders_v3');
+                    const savedPersons = localStorage.getItem('deliveryPersons_v3');
+                    const savedWaitlist = localStorage.getItem('waitlist_v3');
+                    
+                    if (savedOrders) setOrders(JSON.parse(savedOrders));
+                    if (savedPersons) setDeliveryPersons(JSON.parse(savedPersons));
+                    if (savedWaitlist) setWaitlist(JSON.parse(savedWaitlist));
+                    
+                    setLoading(false);
+                    return;
+                }
 
-            const showNotification = useCallback((message, type = 'success') => {
-                setNotifications(prev => [...prev, { id: Date.now(), message, type }]);
+                const ordersRef = database.ref('orders');
+                const personsRef = database.ref('deliveryPersons');
+                const waitlistRef = database.ref('waitlist');
+                const locationsRef = database.ref('locations');
+
+                ordersRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        setOrders(Object.values(data));
+                    }
+                });
+
+                personsRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        setDeliveryPersons(Object.values(data));
+                    }
+                });
+
+                waitlistRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        setWaitlist(Object.values(data));
+                    } else {
+                        setWaitlist([]);
+                    }
+                });
+
+                locationsRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        setDeliveryPersonLocation(data);
+                    }
+                });
+
+                return () => {
+                    ordersRef.off();
+                    personsRef.off();
+                    waitlistRef.off();
+                    locationsRef.off();
+                };
             }, []);
 
-            const formatNumber = (num) => {
-                if (!num) return '0';
-                return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            };
+            // Guardar en localStorage como backup si no hay Firebase
+            useEffect(() => {
+                if (!database) {
+                    localStorage.setItem('deliveryOrders_v3', JSON.stringify(orders));
+                }
+            }, [orders]);
+
+            useEffect(() => {
+                if (!database) {
+                    localStorage.setItem('deliveryPersons_v3', JSON.stringify(deliveryPersons));
+                }
+            }, [deliveryPersons]);
+
+            useEffect(() => {
+                if (!database) {
+                    localStorage.setItem('waitlist_v3', JSON.stringify(waitlist));
+                }
+            }, [waitlist]);
 
             useEffect(() => {
                 const loadData = async () => {
                     try {
-                        const [ordersSnap, personsSnap, locsSnap] = await Promise.all([
-                            db.collection('orders').get(),
-                            db.collection('deliveryPersons').get(),
-                            db.collection('locations').get()
-                        ]);
-
-                        setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-                        const persons = personsSnap.docs.map(d => ({ id: d.id, ...d.data(), numericId: d.data().numericId || d.id }));
-                        setDeliveryPersons(persons);
+                        await new Promise(resolve => setTimeout(resolve, 1500));
                         
-                        const locs = {};
-                        locsSnap.docs.forEach(d => locs[d.id] = d.data());
-                        setLocations(locs);
-
                         const urlParams = new URLSearchParams(window.location.search);
                         const deliveryPersonId = urlParams.get('repartidor');
-
+                        
                         if (deliveryPersonId) {
-                            const person = persons.find(p => p.numericId === deliveryPersonId);
+                            let persons = [];
+                            if (database) {
+                                const personsSnapshot = await database.ref('deliveryPersons').once('value');
+                                const personsData = personsSnapshot.val();
+                                if (personsData) persons = Object.values(personsData);
+                            } else {
+                                const savedPersons = localStorage.getItem('deliveryPersons_v3');
+                                if (savedPersons) persons = JSON.parse(savedPersons);
+                            }
+                            
+                            const person = persons.find(p => p.id === parseInt(deliveryPersonId));
                             if (person) {
                                 setIsDeliveryPersonView(true);
                                 setCurrentDeliveryPerson(person);
-                                setTimeout(() => {
-                                    showNotification(`Bienvenido ${person.name}`, 'success');
-                                    setLoading(false);
-                                }, 1000);
-                            } else {
-                                setTimeout(() => {
-                                    showNotification('Repartidor no encontrado', 'error');
-                                    setLoading(false);
-                                }, 1000);
+                                showNotification(`°Bienvenido ${person.name}!`, 'success');
                             }
-                        } else {
-                            setTimeout(() => {
-                                showNotification('Sistema cargado', 'success');
-                                setLoading(false);
-                            }, 1000);
                         }
+                        
+                        setLoading(false);
                     } catch (error) {
-                        console.error('Error:', error);
-                        showNotification('Error: ' + error.message, 'error');
+                        console.error('Error cargando datos:', error);
                         setLoading(false);
                     }
                 };
                 loadData();
-            }, [showNotification]);
-
-            useEffect(() => {
-                const uns = db.collection('orders').onSnapshot(s => setOrders(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-                return uns;
             }, []);
 
+            // Timer Effect
             useEffect(() => {
-                const uns = db.collection('deliveryPersons').onSnapshot(s => 
-                    setDeliveryPersons(s.docs.map(d => ({ id: d.id, ...d.data(), numericId: d.data().numericId || d.id })))
-                );
-                return uns;
-            }, []);
-
-            useEffect(() => {
-                const uns = db.collection('locations').onSnapshot(s => {
-                    const locs = {};
-                    s.docs.forEach(d => locs[d.id] = d.data());
-                    setLocations(locs);
-                });
-                return uns;
-            }, []);
-
-            const calculateMetrics = useCallback(() => {
-                if (!orders.length) return {
-                    totalOrders: 0, totalRevenue: 0, avgDeliveryTime: 0, avgOrderValue: 0,
-                    completionRate: 0, avgRating: 0, completedOrders: 0, activeOrders: 0, pendingOrders: 0
-                };
-
-                const completed = orders.filter(o => o.status === 'entregado');
-                const active = orders.filter(o => o.status === 'en_transito');
-                const pending = orders.filter(o => o.status === 'pendiente');
-                const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.orderValue || 0) + parseFloat(o.deliveryFee || 0), 0);
-                const times = completed.filter(o => o.actualDeliveryTime).map(o => parseInt(o.actualDeliveryTime));
-                const avgTime = times.length ? times.reduce((s, t) => s + t, 0) / times.length : 0;
-                const ratings = completed.filter(o => o.rating).map(o => parseInt(o.rating));
-                const avgRating = ratings.length ? ratings.reduce((s, r) => s + r, 0) / ratings.length : 0;
-
-                return {
-                    totalOrders: orders.length,
-                    completedOrders: completed.length,
-                    activeOrders: active.length,
-                    pendingOrders: pending.length,
-                    totalRevenue,
-                    avgDeliveryTime: Math.round(avgTime),
-                    avgOrderValue: totalRevenue / orders.length,
-                    completionRate: (completed.length / orders.length) * 100,
-                    avgRating
-                };
-            }, [orders]);
-
-            const handleAddOrder = useCallback(async () => {
-                if (!newOrder.customerName?.trim() || !newOrder.address?.trim() || !newOrder.orderValue) {
-                    showNotification('Completa campos obligatorios', 'warning');
-                    return;
-                }
-                try {
-                    await db.collection('orders').add({
-                        ...newOrder,
-                        customerName: newOrder.customerName.trim(),
-                        address: newOrder.address.trim(),
-                        orderValue: parseFloat(newOrder.orderValue),
-                        deliveryFee: parseFloat(newOrder.deliveryFee || 0),
-                        status: 'pendiente',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    });
-                    setNewOrder({ customerName: '', address: '', orderValue: '', deliveryFee: '', deliveryPerson: '', city: '', customerPhone: '' });
-                    showNotification('Pedido creado', 'success');
-                } catch (error) {
-                    showNotification('Error: ' + error.message, 'error');
-                }
-            }, [newOrder, showNotification]);
-
-            const handleAddDeliveryPerson = useCallback(async () => {
-                if (!newDeliveryPerson.name?.trim()) {
-                    showNotification('Ingresa nombre', 'warning');
-                    return;
-                }
-                try {
-                    await db.collection('deliveryPersons').add({
-                        ...newDeliveryPerson,
-                        name: newDeliveryPerson.name.trim(),
-                        numericId: Date.now().toString(),
-                        createdAt: new Date().toISOString(),
-                        totalDeliveries: 0
-                    });
-                    setNewDeliveryPerson({ name: '', phone: '+57 ', vehicle: 'moto' });
-                    showNotification('Repartidor agregado', 'success');
-                } catch (error) {
-                    showNotification('Error: ' + error.message, 'error');
-                }
-            }, [newDeliveryPerson, showNotification]);
-
-            const handleDelete = useCallback(async (id) => {
-                const person = deliveryPersons.find(p => p.id === id);
-                if (!person) return;
-                const hasActive = orders.some(o => o.deliveryPerson === person.name && (o.status === 'pendiente' || o.status === 'en_transito'));
-                if (hasActive) {
-                    showNotification('Tiene pedidos activos', 'error');
-                    return;
-                }
-                if (confirm(`¬øEliminar a ${person.name}?`)) {
-                    try {
-                        await db.collection('deliveryPersons').doc(id).delete();
-                        showNotification('Eliminado', 'info');
-                    } catch (error) {
-                        showNotification('Error: ' + error.message, 'error');
-                    }
-                }
-            }, [deliveryPersons, orders, showNotification]);
-
-            const handleEdit = useCallback(async (id) => {
-                const person = deliveryPersons.find(p => p.id === id);
-                if (!person) return;
-                const newName = prompt('Nuevo nombre:', person.name);
-                const newPhone = prompt('Nuevo tel√©fono:', person.phone);
-                if (newName?.trim()) {
-                    try {
-                        await db.collection('deliveryPersons').doc(id).update({
-                            name: newName.trim(),
-                            phone: newPhone || person.phone
+                const interval = setInterval(() => {
+                    setActiveTimers(prev => {
+                        const updated = { ...prev };
+                        Object.keys(updated).forEach(orderId => {
+                            if (updated[orderId].isRunning) {
+                                updated[orderId].elapsed += 1;
+                            }
                         });
-                        showNotification('Actualizado', 'success');
-                    } catch (error) {
-                        showNotification('Error: ' + error.message, 'error');
-                    }
-                }
-            }, [deliveryPersons, showNotification]);
-
-            const sendWhatsApp = useCallback((person) => {
-                const url = `${window.location.origin}${window.location.pathname}?repartidor=${person.numericId}`;
-                const msg = encodeURIComponent(
-                    `Hola ${person.name}\n\nEnlace: ${url}\n\nAbre en tu celular y activa GPS cuando tengas pedidos.`
-                );
-                const phone = person.phone.replace(/\D/g, '').slice(-10);
-                if (phone) {
-                    window.open(`https://wa.me/57${phone}?text=${msg}`, '_blank');
-                    showNotification('Enviado', 'success');
-                } else {
-                    showNotification('Tel√©fono inv√°lido', 'error');
-                }
-            }, [showNotification]);
-
-            const updateStatus = useCallback(async (id, status) => {
-                try {
-                    await db.collection('orders').doc(id).update({ status, updatedAt: new Date().toISOString() });
-                    showNotification(status === 'en_transito' ? 'Enviado' : 'Completado', 'success');
-                } catch (error) {
-                    showNotification('Error: ' + error.message, 'error');
-                }
-            }, [showNotification]);
-
-            const completeDelivery = useCallback(async (id, time, rating) => {
-                try {
-                    await db.collection('orders').doc(id).update({
-                        status: 'entregado',
-                        actualDeliveryTime: time,
-                        rating,
-                        completedAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        return updated;
                     });
-                    showNotification('Completado', 'success');
-                } catch (error) {
-                    showNotification('Error: ' + error.message, 'error');
-                }
-            }, [showNotification]);
+                }, 1000);
 
-            const startGPS = useCallback(() => {
-                if (!navigator.geolocation) {
-                    showNotification('GPS no soportado', 'error');
+                return () => clearInterval(interval);
+            }, []);
+
+            const showNotification = (message, type = 'info') => {
+                setNotification({ show: true, message, type });
+                setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+            };
+
+            const formatNumber = (num) => {
+                return new Intl.NumberFormat('es-CO').format(num);
+            };
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            const createOrder = async () => {
+                if (!formData.customerName || !formData.customerPhone || !formData.address || !formData.orderValue) {
+                    showNotification('Por favor completa todos los campos', 'error');
                     return;
                 }
-                setIsTrackingLocation(true);
-                showNotification('GPS activado', 'info');
-                navigator.geolocation.watchPosition(
-                    async (pos) => {
-                        if (currentDeliveryPerson) {
-                            try {
-                                await db.collection('locations').doc(currentDeliveryPerson.id).set({
-                                    lat: pos.coords.latitude,
-                                    lng: pos.coords.longitude,
-                                    timestamp: new Date().toISOString()
-                                });
-                            } catch (e) {}
-                        }
-                    },
-                    (e) => console.error(e),
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+
+                const newOrder = {
+                    id: Date.now(),
+                    customerName: formData.customerName,
+                    customerPhone: formData.customerPhone,
+                    address: formData.address,
+                    orderValue: parseFloat(formData.orderValue),
+                    status: 'pending',
+                    deliveryPerson: formData.deliveryPerson || null,
+                    createdAt: new Date().toISOString(),
+                    deliveryTime: null,
+                    startTime: null,
+                    endTime: null,
+                    rating: null
+                };
+
+                if (database) {
+                    await database.ref(`orders/${newOrder.id}`).set(newOrder);
+                } else {
+                    setOrders(prev => [...prev, newOrder]);
+                }
+                
+                setFormData({ customerName: '', customerPhone: '', address: '', orderValue: '', deliveryPerson: '' });
+                setShowModal(false);
+                showNotification('°Pedido creado exitosamente!', 'success');
+            };
+
+            const addDeliveryPerson = async () => {
+                if (!formData.personName || !formData.personPhone) {
+                    showNotification('Por favor completa nombre y telÈfono', 'error');
+                    return;
+                }
+
+                const newPerson = {
+                    id: Date.now(),
+                    name: formData.personName,
+                    phone: formData.personPhone,
+                    isActive: true,
+                    gpsActive: false,
+                    totalDeliveries: 0,
+                    activeOrders: 0
+                };
+
+                if (database) {
+                    await database.ref(`deliveryPersons/${newPerson.id}`).set(newPerson);
+                } else {
+                    setDeliveryPersons(prev => [...prev, newPerson]);
+                }
+                
+                setFormData({ ...formData, personName: '', personPhone: '' });
+                setShowModal(false);
+                showNotification('°Repartidor agregado exitosamente!', 'success');
+            };
+
+            const deleteDeliveryPerson = async (personId) => {
+                const hasActiveOrders = orders.some(o => 
+                    o.deliveryPerson === deliveryPersons.find(p => p.id === personId)?.name && 
+                    o.status !== 'delivered' && o.status !== 'cancelled'
                 );
-            }, [currentDeliveryPerson, showNotification]);
 
-            const stopGPS = useCallback(() => {
-                setIsTrackingLocation(false);
-                showNotification('GPS desactivado', 'info');
-            }, [showNotification]);
+                if (hasActiveOrders) {
+                    showNotification('No se puede eliminar: tiene pedidos activos', 'error');
+                    return;
+                }
 
-            const acceptOrder = useCallback((id) => {
-                updateStatus(id, 'en_transito');
-                if (!isTrackingLocation) startGPS();
-            }, [isTrackingLocation, startGPS, updateStatus]);
+                if (window.confirm('øEst·s seguro de eliminar este repartidor?')) {
+                    if (database) {
+                        await database.ref(`deliveryPersons/${personId}`).remove();
+                        await database.ref(`waitlist/${personId}`).remove();
+                    } else {
+                        setDeliveryPersons(prev => prev.filter(p => p.id !== personId));
+                        setWaitlist(prev => prev.filter(w => w.personId !== personId));
+                    }
+                    showNotification('Repartidor eliminado', 'success');
+                }
+            };
 
-            const contactCustomer = useCallback((phone) => {
-                const clean = phone.replace(/\D/g, '').slice(-10);
-                if (clean) window.open(`https://wa.me/57${clean}`, '_blank');
-                else showNotification('Sin tel√©fono', 'error');
-            }, [showNotification]);
+            const startTimer = (orderId) => {
+                setActiveTimers(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        startTime: Date.now(),
+                        elapsed: 0,
+                        isRunning: true
+                    }
+                }));
+            };
 
-            const metrics = calculateMetrics();
+            const stopTimer = (orderId) => {
+                setActiveTimers(prev => ({
+                    ...prev,
+                    [orderId]: {
+                        ...prev[orderId],
+                        isRunning: false
+                    }
+                }));
+                return activeTimers[orderId]?.elapsed || 0;
+            };
 
-            const MetricCard = ({ title, value, icon, color, prefix = "", suffix = "" }) => (
-                <div className="metric-card bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100 hover:border-gray-200 fade-in">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-                            <p className="text-2xl font-bold text-gray-900">{prefix}{typeof value === 'number' ? formatNumber(value) : value}{suffix}</p>
-                        </div>
-                        <div className="ml-4 flex-shrink-0">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md" style={{ backgroundColor: color + '15' }}>
-                                <Icon d={icon} className="w-6 h-6" style={{ color }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            const updateOrderStatus = async (orderId, newStatus) => {
+                const order = orders.find(o => o.id === orderId);
+                if (!order) return;
+
+                const updates = { status: newStatus };
+
+                if (newStatus === 'in-transit') {
+                    updates.startTime = new Date().toISOString();
+                    startTimer(orderId);
+                } else if (newStatus === 'delivered') {
+                    updates.endTime = new Date().toISOString();
+                    const elapsedSeconds = stopTimer(orderId);
+                    updates.deliveryTime = Math.round(elapsedSeconds / 60);
+                }
+
+                if (database) {
+                    await database.ref(`orders/${orderId}`).update(updates);
+                } else {
+                    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+                }
+                
+                showNotification('Estado actualizado', 'success');
+            };
+
+            const assignDeliveryPerson = async (orderId, personName) => {
+                if (database) {
+                    await database.ref(`orders/${orderId}`).update({ deliveryPerson: personName });
+                } else {
+                    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, deliveryPerson: personName } : o));
+                }
+                showNotification('Repartidor asignado', 'success');
+            };
+
+            const copyDeliveryPersonUrl = (personId, personName) => {
+                const baseUrl = window.location.origin + window.location.pathname;
+                const url = `${baseUrl}?repartidor=${personId}`;
+                
+                navigator.clipboard.writeText(url).then(() => {
+                    showNotification('°Enlace copiado!', 'success');
+                    
+                    const person = deliveryPersons.find(p => p.id === personId);
+                    if (person && person.phone) {
+                        const message = `°Hola ${personName}! ??\n\nTu enlace de acceso al sistema de domicilios:\n${url}\n\nInstrucciones:\n1. ??? Activa el GPS (OBLIGATORIO)\n2. ?? ⁄nete a la lista de espera\n3. ? Acepta pedidos cuando sea tu turno\n4. ?? El cronÛmetro iniciar· autom·ticamente\n5. ?? Marca como entregado al finalizar\n\n°Bienvenido al equipo! ??`;
+                        const whatsappUrl = `https://wa.me/${person.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+                        window.open(whatsappUrl, '_blank');
+                    }
+                });
+            };
+
+            const startTracking = async (personId) => {
+                if (!navigator.geolocation) {
+                    showNotification('GPS no disponible en este dispositivo', 'error');
+                    return;
+                }
+
+                const id = navigator.geolocation.watchPosition(
+                    async (position) => {
+                        const location = {
+                            personId,
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        if (database) {
+                            await database.ref(`locations/${personId}`).set(location);
+                            await database.ref(`deliveryPersons/${personId}`).update({ gpsActive: true });
+                        } else {
+                            setDeliveryPersonLocation(prev => ({ ...prev, [personId]: location }));
+                            setDeliveryPersons(prev => prev.map(p => 
+                                p.id === personId ? { ...p, gpsActive: true } : p
+                            ));
+                        }
+                        
+                        setIsTrackingLocation(true);
+                        showNotification('GPS activado', 'success');
+                    },
+                    (error) => {
+                        showNotification('Error al obtener ubicaciÛn', 'error');
+                        console.error(error);
+                    },
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                );
+                setWatchId(id);
+            };
+
+            const stopTracking = async (personId) => {
+                if (watchId) {
+                    navigator.geolocation.clearWatch(watchId);
+                    setWatchId(null);
+                    setIsTrackingLocation(false);
+                    
+                    if (database) {
+                        await database.ref(`deliveryPersons/${personId}`).update({ gpsActive: false });
+                    } else {
+                        setDeliveryPersons(prev => prev.map(p => 
+                            p.id === personId ? { ...p, gpsActive: false } : p
+                        ));
+                    }
+                    
+                    showNotification('GPS desactivado', 'info');
+                }
+            };
+
+            const joinWaitlist = async (personId, personName) => {
+                const person = deliveryPersons.find(p => p.id === personId);
+                if (!person?.gpsActive) {
+                    showNotification('?? Debes activar el GPS primero', 'error');
+                    return;
+                }
+
+                const existsInWaitlist = waitlist.some(w => w.personId === personId);
+                if (existsInWaitlist) {
+                    showNotification('Ya est·s en la lista de espera', 'info');
+                    return;
+                }
+
+                const newEntry = {
+                    personId,
+                    personName,
+                    joinedAt: new Date().toISOString(),
+                    position: waitlist.length + 1
+                };
+
+                if (database) {
+                    await database.ref(`waitlist/${personId}`).set(newEntry);
+                } else {
+                    setWaitlist(prev => [...prev, newEntry]);
+                }
+                
+                showNotification('? Te has unido a la lista de espera', 'success');
+            };
+
+            const leaveWaitlist = async (personId) => {
+                if (database) {
+                    await database.ref(`waitlist/${personId}`).remove();
+                } else {
+                    setWaitlist(prev => prev.filter(w => w.personId !== personId));
+                }
+                showNotification('Has salido de la lista de espera', 'info');
+            };
+
+            const acceptOrder = async (orderId, personId) => {
+                const person = deliveryPersons.find(p => p.id === personId);
+                
+                if (!person?.gpsActive) {
+                    showNotification('?? Debes activar el GPS para aceptar pedidos', 'error');
+                    return;
+                }
+
+                await updateOrderStatus(orderId, 'in-transit');
+                showNotification('°Pedido aceptado! CronÛmetro iniciado', 'success');
+            };
+
+            const getStats = () => {
+                const today = new Date().toISOString().split('T')[0];
+                const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
+                
+                return {
+                    total: orders.length,
+                    pending: orders.filter(o => o.status === 'pending').length,
+                    inTransit: orders.filter(o => o.status === 'in-transit').length,
+                    delivered: orders.filter(o => o.status === 'delivered').length,
+                    todayOrders: todayOrders.length,
+                    todayRevenue: todayOrders.reduce((sum, o) => sum + (o.orderValue || 0), 0)
+                };
+            };
+
+            const stats = getStats();
+
+            const Icon = ({ d, className = "w-5 h-5" }) => (
+                <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d} />
+                </svg>
             );
 
-            const tabs = [
-                { id: 'dashboard', name: 'Dashboard', icon: icons.trending },
-                { id: 'orders', name: 'Pedidos', icon: icons.package },
-                { id: 'delivery', name: 'Repartidores', icon: icons.users },
-                { id: 'analytics', name: 'An√°lisis', icon: icons.star }
-            ];
+            const icons = {
+                home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
+                package: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+                truck: "M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0",
+                users: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+                plus: "M12 4v16m8-8H4",
+                phone: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z",
+                location: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z",
+                check: "M5 13l4 4L19 7",
+                clock: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            };
 
-            if (loading) return <div className="loading"><div className="spinner"></div><p>Cargando...</p></div>;
+            if (loading) {
+                return (
+                    <div className="loading">
+                        <div className="spinner"></div>
+                        <p>Cargando sistema...</p>
+                    </div>
+                );
+            }
 
-            // Vista Repartidor
             if (isDeliveryPersonView && currentDeliveryPerson) {
                 const myOrders = orders.filter(o => o.deliveryPerson === currentDeliveryPerson.name);
-                const pending = myOrders.filter(o => o.status === 'pendiente');
-                const active = myOrders.filter(o => o.status === 'en_transito');
-                const completed = myOrders.filter(o => o.status === 'entregado');
+                const myStats = {
+                    pending: myOrders.filter(o => o.status === 'pending').length,
+                    inTransit: myOrders.filter(o => o.status === 'in-transit').length,
+                    delivered: myOrders.filter(o => o.status === 'delivered').length
+                };
+
+                const myPosition = waitlist.findIndex(w => w.personId === currentDeliveryPerson.id) + 1;
+                const inWaitlist = myPosition > 0;
 
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
-                        {notifications.map(n => <Notification key={n.id} {...n} onClose={() => setNotifications(p => p.filter(i => i.id !== n.id))} />)}
-                        <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
-                            <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
-                                <div>
-                                    <h1 className="text-2xl font-bold">Hola, {currentDeliveryPerson.name}</h1>
-                                    <p className="text-green-100 text-sm">Panel de Repartidor</p>
-                                </div>
-                                <button onClick={isTrackingLocation ? stopGPS : startGPS}
-                                    className={`px-4 py-2 rounded-lg font-medium text-sm ${isTrackingLocation ? 'bg-red-500 hover:bg-red-600' : 'bg-white text-green-600'}`}>
-                                    {isTrackingLocation ? 'GPS: Activo' : 'Activar GPS'}
-                                </button>
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                        {notification.show && (
+                            <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+                            } text-white`}>
+                                {notification.message}
                             </div>
-                        </div>
-                        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-yellow-200">
-                                    <div className="text-2xl font-bold text-yellow-600">{pending.length}</div>
-                                    <div className="text-sm text-gray-600">Pendientes</div>
+                        )}
+
+                        <div className="max-w-4xl mx-auto">
+                            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-gray-900">°Hola {currentDeliveryPerson.name}! ??</h1>
+                                        <p className="text-gray-600">Panel de Repartidor</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm text-gray-500">Tel: {currentDeliveryPerson.phone}</p>
+                                        {currentDeliveryPerson.gpsActive && (
+                                            <span className="text-xs text-green-600 font-bold">?? GPS Activo</span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-blue-200">
-                                    <div className="text-2xl font-bold text-blue-600">{active.length}</div>
-                                    <div className="text-sm text-gray-600">En Ruta</div>
+
+                                {!currentDeliveryPerson.gpsActive && (
+                                    <div className="gps-required-warning">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl">??</span>
+                                            <div>
+                                                <p className="font-bold">GPS Requerido</p>
+                                                <p className="text-sm">Debes activar el GPS para aceptar pedidos</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-3 gap-4 mb-6">
+                                    <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                                        <div className="text-2xl font-bold text-yellow-600">{myStats.pending}</div>
+                                        <div className="text-sm text-gray-600">Pendientes</div>
+                                    </div>
+                                    <div className="bg-blue-50 p-4 rounded-lg text-center">
+                                        <div className="text-2xl font-bold text-blue-600">{myStats.inTransit}</div>
+                                        <div className="text-sm text-gray-600">En Tr·nsito</div>
+                                    </div>
+                                    <div className="bg-green-50 p-4 rounded-lg text-center">
+                                        <div className="text-2xl font-bold text-green-600">{myStats.delivered}</div>
+                                        <div className="text-sm text-gray-600">Entregados</div>
+                                    </div>
                                 </div>
-                                <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-green-200">
-                                    <div className="text-2xl font-bold text-green-600">{completed.length}</div>
-                                    <div className="text-sm text-gray-600">Completadas</div>
+
+                                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-xl text-white mb-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <Icon d={icons.location} className="w-6 h-6" />
+                                            <span className="font-bold">Control GPS</span>
+                                        </div>
+                                        {isTrackingLocation && (
+                                            <span className="gps-active">?? Activo</span>
+                                        )}
+                                    </div>
+                                    
+                                    {!isTrackingLocation ? (
+                                        <button
+                                            onClick={() => startTracking(currentDeliveryPerson.id)}
+                                            className="w-full bg-white text-blue-600 py-3 rounded-lg font-bold hover:bg-blue-50 transition"
+                                        >
+                                            ??? ACTIVAR GPS
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="bg-white/20 p-3 rounded-lg">
+                                                <p className="text-sm mb-1">?? UbicaciÛn Actual:</p>
+                                                <p className="text-xs font-mono">
+                                                    {deliveryPersonLocation[currentDeliveryPerson.id]?.lat.toFixed(6)}, {deliveryPersonLocation[currentDeliveryPerson.id]?.lng.toFixed(6)}
+                                                </p>
+                                                <p className="text-xs mt-1">PrecisiÛn: {deliveryPersonLocation[currentDeliveryPerson.id]?.accuracy?.toFixed(0)}m</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => window.open(`https://www.google.com/maps?q=${deliveryPersonLocation[currentDeliveryPerson.id]?.lat},${deliveryPersonLocation[currentDeliveryPerson.id]?.lng}`, '_blank')}
+                                                    className="flex-1 bg-white text-blue-600 py-2 rounded-lg text-sm font-bold"
+                                                >
+                                                    Ver en Maps
+                                                </button>
+                                                <button
+                                                    onClick={() => stopTracking(currentDeliveryPerson.id)}
+                                                    className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-bold"
+                                                >
+                                                    Detener
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-6 rounded-xl text-white">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Icon d={icons.users} className="w-6 h-6" />
+                                        <span className="font-bold">Lista de Espera</span>
+                                    </div>
+                                    
+                                    {!inWaitlist ? (
+                                        <button
+                                            onClick={() => joinWaitlist(currentDeliveryPerson.id, currentDeliveryPerson.name)}
+                                            disabled={!currentDeliveryPerson.gpsActive}
+                                            className={`w-full py-3 rounded-lg font-bold transition ${
+                                                currentDeliveryPerson.gpsActive 
+                                                    ? 'bg-white text-purple-600 hover:bg-purple-50' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {currentDeliveryPerson.gpsActive ? '?? Unirse a la Lista' : '?? Activa GPS primero'}
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="bg-white/20 p-4 rounded-lg text-center">
+                                                <p className="text-sm mb-2">Tu posiciÛn en la fila:</p>
+                                                <p className="text-5xl font-bold">{myPosition}</p>
+                                                <p className="text-sm mt-2">de {waitlist.length} repartidores</p>
+                                            </div>
+                                            <button
+                                                onClick={() => leaveWaitlist(currentDeliveryPerson.id)}
+                                                className="w-full bg-red-500 text-white py-2 rounded-lg font-bold"
+                                            >
+                                                Salir de la Lista
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {pending.length > 0 && (
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-yellow-200">
-                                    <div className="px-6 py-4 bg-yellow-50 border-b border-yellow-200">
-                                        <h3 className="text-lg font-semibold">Pedidos Disponibles</h3>
-                                    </div>
-                                    <div className="p-4 space-y-4">
-                                        {pending.map(o => (
-                                            <div key={o.id} className="bg-yellow-50 rounded-lg p-4 border-2 border-yellow-200">
-                                                <div className="flex justify-between mb-3">
-                                                    <div>
-                                                        <h4 className="font-bold text-lg">{o.customerName}</h4>
-                                                        <p className="text-sm text-gray-600">{o.address}</p>
-                                                        {o.city && <p className="text-xs text-gray-500">{o.city}</p>}
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-bold text-green-600">${formatNumber(o.orderValue)}</div>
-                                                        {o.deliveryFee > 0 && <div className="text-sm text-gray-600">+ ${formatNumber(o.deliveryFee)}</div>}
-                                                    </div>
+                            <div className="space-y-4">
+                                <h2 className="text-xl font-bold text-gray-900">Mis Pedidos</h2>
+                                
+                                {myOrders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').map(order => {
+                                    const timer = activeTimers[order.id];
+                                    const showTimer = order.status === 'in-transit' && timer?.isRunning;
+
+                                    return (
+                                        <div key={order.id} className="bg-white rounded-xl shadow-lg p-6">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h3 className="font-bold text-lg">{order.customerName}</h3>
+                                                    <p className="text-gray-600 text-sm">{order.address}</p>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => acceptOrder(o.id)} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium">
-                                                        Aceptar
-                                                    </button>
-                                                    {o.customerPhone && (
-                                                        <button onClick={() => contactCustomer(o.customerPhone)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg">
-                                                            <Icon d={icons.smartphone} className="w-5 h-5" />
-                                                        </button>
-                                                    )}
+                                                <span className={`status-badge status-${order.status}`}>
+                                                    {order.status === 'pending' ? '? Pendiente' : '?? En Tr·nsito'}
+                                                </span>
+                                            </div>
+
+                                            {showTimer && (
+                                                <div className="bg-blue-50 p-6 rounded-xl mb-4">
+                                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                                        <Icon d={icons.clock} className="w-6 h-6 text-blue-600" />
+                                                        <span className="text-sm font-bold text-blue-600">TIEMPO DE ENTREGA</span>
+                                                    </div>
+                                                    <div className="timer-display">
+                                                        {formatTime(timer.elapsed)}
+                                                    </div>
+                                                    <p className="text-center text-sm text-gray-600 mt-2">
+                                                        {Math.floor(timer.elapsed / 60)} minutos
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-gray-600">Valor del pedido:</span>
+                                                    <span className="font-bold text-green-600 text-xl">${formatNumber(order.orderValue)}</span>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
-                            {active.length > 0 && (
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-blue-200">
-                                    <div className="px-6 py-4 bg-blue-50 border-b border-blue-200">
-                                        <h3 className="text-lg font-semibold">En Ruta</h3>
-                                    </div>
-                                    <div className="p-4 space-y-4">
-                                        {active.map(o => (
-                                            <div key={o.id} className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-                                                <div className="flex justify-between mb-3">
-                                                    <div>
-                                                        <h4 className="font-bold text-lg">{o.customerName}</h4>
-                                                        <p className="text-sm text-gray-600">{o.address}</p>
-                                                    </div>
-                                                    <div className="text-lg font-bold text-green-600">${formatNumber(o.orderValue)}</div>
-                                                </div>
-                                                {!isTrackingLocation && (
-                                                    <div className="bg-orange-100 border-2 border-orange-300 rounded-lg p-3 mb-3 flex items-start">
-                                                        <Icon d={icons.alert} className="w-5 h-5 text-orange-600 mr-2 mt-0.5" />
-                                                        <div className="text-sm text-orange-800"><strong>GPS desactivado.</strong> Activa GPS.</div>
-                                                    </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {order.status === 'pending' && (
+                                                    <button
+                                                        onClick={() => acceptOrder(order.id, currentDeliveryPerson.id)}
+                                                        disabled={!currentDeliveryPerson.gpsActive}
+                                                        className={`py-3 rounded-lg font-bold transition ${
+                                                            currentDeliveryPerson.gpsActive
+                                                                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        {currentDeliveryPerson.gpsActive ? '? ACEPTAR PEDIDO' : '?? GPS Requerido'}
+                                                    </button>
                                                 )}
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {o.customerPhone && (
-                                                        <button onClick={() => contactCustomer(o.customerPhone)} 
-                                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center space-x-2">
-                                                            <Icon d={icons.smartphone} className="w-4 h-4" />
-                                                            <span>Contactar</span>
-                                                        </button>
-                                                    )}
-                                                    <button onClick={() => {
-                                                        const t = prompt('Minutos:', '30');
-                                                        const r = prompt('Calificaci√≥n (1-5):', '5');
-                                                        if (t && r) completeDelivery(o.id, t, r);
-                                                    }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
-                                                        Completar
+                                                {order.status === 'in-transit' && (
+                                                    <button
+                                                        onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                                        className="bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 transition"
+                                                    >
+                                                        ?? MARCAR ENTREGADO
                                                     </button>
-                                                </div>
+                                                )}
+                                                <button
+                                                    onClick={() => window.open(`https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=Hola ${order.customerName}, soy tu repartidor. Estoy en camino con tu pedido a ${order.address}. øHay alguna indicaciÛn especial?`, '_blank')}
+                                                    className="whatsapp-btn text-white py-3 rounded-lg font-bold"
+                                                >
+                                                    ?? WHATSAPP
+                                                </button>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                        </div>
+                                    );
+                                })}
 
-                            {completed.length > 0 && (
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-green-200">
-                                    <div className="px-6 py-4 bg-green-50 border-b border-green-200">
-                                        <h3 className="text-lg font-semibold">Historial</h3>
+                                {myOrders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length === 0 && (
+                                    <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                                        <Icon d={icons.package} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-gray-900 mb-2">Sin pedidos activos</h3>
+                                        <p className="text-gray-600">Los nuevos pedidos aparecer·n aquÌ</p>
                                     </div>
-                                    <div className="p-4 space-y-3">
-                                        {completed.slice(0, 5).map(o => (
-                                            <div key={o.id} className="bg-green-50 rounded-lg p-4 border border-green-200">
-                                                <div className="flex justify-between">
-                                                    <div>
-                                                        <h4 className="font-bold">{o.customerName}</h4>
-                                                        <p className="text-sm text-gray-600">{o.address}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="font-bold text-green-600">${formatNumber(o.orderValue)}</div>
-                                                        {o.rating && <div className="text-sm text-yellow-600">{o.rating}/5</div>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {!myOrders.length && (
-                                <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                                    <Icon d={icons.package} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Sin pedidos</h3>
-                                    <p className="text-gray-600">Aparecer√°n cuando te los asignen</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 );
             }
 
-            // Vista Admin
+            // Vista Administrador - Continuar· en la siguiente parte
             return (
-                <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-                    {notifications.map(n => <Notification key={n.id} {...n} onClose={() => setNotifications(p => p.filter(i => i.id !== n.id))} />)}
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                    {notification.show && (
+                        <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                            notification.type === 'success' ? 'bg-green-500' :
+                            notification.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+                        } text-white`}>
+                            {notification.message}
+                        </div>
+                    )}
 
-                    {viewingLocation && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setViewingLocation(null)}>
-                            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-                                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 flex justify-between items-center">
-                                    <div>
-                                        <h3 className="text-2xl font-bold">Ubicaci√≥n de {viewingLocation.name}</h3>
-                                        <p className="text-blue-100 text-sm">GPS en tiempo real</p>
+                    {showModal && (
+                        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="text-2xl font-bold mb-6">
+                                    {modalType === 'order' ? '?? Nuevo Pedido' : '?? Nuevo Repartidor'}
+                                </h2>
+                                
+                                {modalType === 'order' ? (
+                                    <div className="space-y-4">
+                                        <input
+                                            type="text"
+                                            name="customerName"
+                                            placeholder="Nombre del cliente"
+                                            value={formData.customerName}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        />
+                                        <input
+                                            type="tel"
+                                            name="customerPhone"
+                                            placeholder="TelÈfono"
+                                            value={formData.customerPhone}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        />
+                                        <input
+                                            type="text"
+                                            name="address"
+                                            placeholder="DirecciÛn de entrega"
+                                            value={formData.address}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        />
+                                        <input
+                                            type="number"
+                                            name="orderValue"
+                                            placeholder="Valor del pedido"
+                                            value={formData.orderValue}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        />
+                                        <select
+                                            name="deliveryPerson"
+                                            value={formData.deliveryPerson}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        >
+                                            <option value="">Asignar repartidor (opcional)</option>
+                                            {deliveryPersons.map(person => (
+                                                <option key={person.id} value={person.name}>{person.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={createOrder}
+                                                className="flex-1 btn-primary text-white py-3 rounded-lg font-bold"
+                                            >
+                                                Crear Pedido
+                                            </button>
+                                            <button
+                                                onClick={() => setShowModal(false)}
+                                                className="flex-1 bg-gray-200 py-3 rounded-lg font-bold"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button onClick={() => setViewingLocation(null)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2">
-                                        <Icon d={icons.close} className="w-6 h-6" />
-                                    </button>
-                                </div>
-                                <div className="p-6">
-                                    {locations[viewingLocation.id] ? (
-                                        <div className="space-y-4">
-                                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                                                <div className="flex items-center space-x-2 mb-3">
-                                                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                                                    <span className="text-green-800 font-semibold">GPS Activo</span>
-                                                </div>
-                                                <div className="space-y-2 text-sm">
-                                                    <div className="flex items-center space-x-2">
-                                                        <Icon d={icons.mapPin} className="w-4 h-4 text-green-600" />
-                                                        <span className="font-mono text-gray-700">Lat: {locations[viewingLocation.id].lat.toFixed(6)}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Icon d={icons.mapPin} className="w-4 h-4 text-green-600" />
-                                                        <span className="font-mono text-gray-700">Lng: {locations[viewingLocation.id].lng.toFixed(6)}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Icon d={icons.clock} className="w-4 h-4 text-green-600" />
-                                                        <span className="text-gray-700">Actualizado: {new Date(locations[viewingLocation.id].timestamp).toLocaleString()}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
-                                                <iframe width="100%" height="400" frameBorder="0" 
-                                                    src={`https://maps.google.com/maps?q=${locations[viewingLocation.id].lat},${locations[viewingLocation.id].lng}&z=15&output=embed`}
-                                                    allowFullScreen></iframe>
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <a href={`https://www.google.com/maps/dir/?api=1&destination=${locations[viewingLocation.id].lat},${locations[viewingLocation.id].lng}`}
-                                                    target="_blank" rel="noopener noreferrer"
-                                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-center">
-                                                    Abrir en Maps
-                                                </a>
-                                                <button onClick={() => {
-                                                    navigator.clipboard.writeText(`${locations[viewingLocation.id].lat},${locations[viewingLocation.id].lng}`);
-                                                    showNotification('Copiado', 'success');
-                                                }} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium">
-                                                    Copiar
-                                                </button>
-                                            </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <input
+                                            type="text"
+                                            name="personName"
+                                            placeholder="Nombre del repartidor"
+                                            value={formData.personName}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        />
+                                        <input
+                                            type="tel"
+                                            name="personPhone"
+                                            placeholder="TelÈfono"
+                                            value={formData.personPhone}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 border rounded-lg"
+                                        />
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={addDeliveryPerson}
+                                                className="flex-1 btn-primary text-white py-3 rounded-lg font-bold"
+                                            >
+                                                Agregar Repartidor
+                                            </button>
+                                            <button
+                                                onClick={() => setShowModal(false)}
+                                                className="flex-1 bg-gray-200 py-3 rounded-lg font-bold"
+                                            >
+                                                Cancelar
+                                            </button>
                                         </div>
-                                    ) : (
-                                        <div className="text-center py-12">
-                                            <Icon d={icons.mapPin} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">Sin ubicaci√≥n</h4>
-                                            <p className="text-gray-600">El repartidor no ha activado GPS</p>
-                                        </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
 
-                    <div className="bg-white shadow-lg border-b-2 border-gray-200">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between items-center py-6">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                                        <Icon d={icons.package} className="w-6 h-6 text-white" />
-                                    </div>
+                    <div className="container mx-auto px-4 py-8">
+                        <div className="mb-8">
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">Sistema de Domicilios ??</h1>
+                            <p className="text-gray-600">Panel de Control Administrativo</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div className="metric-card bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon d={icons.package} className="w-8 h-8 text-blue-500" />
+                                    <span className="text-3xl font-bold text-gray-900">{stats.total}</span>
+                                </div>
+                                <p className="text-gray-600 font-medium">Total Pedidos</p>
+                            </div>
+
+                            <div className="metric-card bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon d={icons.truck} className="w-8 h-8 text-yellow-500" />
+                                    <span className="text-3xl font-bold text-gray-900">{stats.pending}</span>
+                                </div>
+                                <p className="text-gray-600 font-medium">Pendientes</p>
+                            </div>
+
+                            <div className="metric-card bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon d={icons.truck} className="w-8 h-8 text-blue-500" />
+                                    <span className="text-3xl font-bold text-gray-900">{stats.inTransit}</span>
+                                </div>
+                                <p className="text-gray-600 font-medium">En Tr·nsito</p>
+                            </div>
+
+                            <div className="metric-card bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon d={icons.check} className="w-8 h-8 text-green-500" />
+                                    <span className="text-3xl font-bold text-gray-900">{stats.delivered}</span>
+                                </div>
+                                <p className="text-gray-600 font-medium">Entregados</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl shadow-lg mb-6">
+                            <div className="flex border-b overflow-x-auto">
+                                <button
+                                    onClick={() => setActiveTab('dashboard')}
+                                    className={`flex-1 py-4 font-bold whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}
+                                >
+                                    ?? Dashboard
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('orders')}
+                                    className={`flex-1 py-4 font-bold whitespace-nowrap ${activeTab === 'orders' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}
+                                >
+                                    ?? Pedidos
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('delivery')}
+                                    className={`flex-1 py-4 font-bold whitespace-nowrap ${activeTab === 'delivery' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}
+                                >
+                                    ?? Repartidores
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('waitlist')}
+                                    className={`flex-1 py-4 font-bold whitespace-nowrap ${activeTab === 'waitlist' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}
+                                >
+                                    ?? Lista de Espera
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                {activeTab === 'dashboard' && (
                                     <div>
-                                        <h1 className="text-3xl font-bold text-gray-900">Control de Domicilios</h1>
-                                        <p className="text-sm text-gray-600">Sistema v2.0 con Firebase</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white border-b-2 border-gray-100 sticky top-0 z-10 shadow-sm">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <nav className="flex space-x-1 py-4">
-                                {tabs.map(tab => (
-                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                                            activeTab === tab.id ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}>
-                                        <Icon d={tab.icon} className="w-4 h-4" />
-                                        <span>{tab.name}</span>
-                                    </button>
-                                ))}
-                            </nav>
-                        </div>
-                    </div>
-
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {activeTab === 'dashboard' && (
-                            <div className="space-y-8 fade-in">
-                                <div className="text-center bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-8 border-2 border-blue-100 shadow-lg">
-                                    <h2 className="text-3xl font-bold text-gray-900 mb-3">Dashboard de Control</h2>
-                                    <p className="text-gray-600 text-lg max-w-3xl mx-auto">Sistema con Firebase y GPS en tiempo real</p>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <MetricCard title="Total Pedidos" value={metrics.totalOrders} icon={icons.package} color="#3B82F6" />
-                                    <MetricCard title="Ingresos" value={metrics.totalRevenue} icon={icons.dollar} color="#10B981" prefix="$" />
-                                    <MetricCard title="Tiempo" value={metrics.avgDeliveryTime} icon={icons.clock} color="#F59E0B" suffix=" min" />
-                                    <MetricCard title="Calificaci√≥n" value={metrics.avgRating.toFixed(1)} icon={icons.star} color="#EF4444" suffix="/5" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6 text-center shadow-lg">
-                                        <div className="text-4xl font-bold text-green-600 mb-2">{metrics.completedOrders}</div>
-                                        <div className="text-sm font-medium text-green-800">Entregados</div>
-                                    </div>
-                                    <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-200 rounded-xl p-6 text-center shadow-lg">
-                                        <div className="text-4xl font-bold text-yellow-600 mb-2">{metrics.pendingOrders}</div>
-                                        <div className="text-sm font-medium text-yellow-800">Pendientes</div>
-                                    </div>
-                                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 text-center shadow-lg">
-                                        <div className="text-4xl font-bold text-blue-600 mb-2">{metrics.activeOrders}</div>
-                                        <div className="text-sm font-medium text-blue-800">En Tr√°nsito</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'orders' && (
-                            <div className="space-y-6 fade-in">
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6">
-                                    <h3 className="text-lg font-semibold mb-6 flex items-center">
-                                        <Icon d={icons.plus} className="w-5 h-5 mr-2 text-blue-600" />
-                                        Crear Pedido
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        <input type="text" placeholder="Cliente *" value={newOrder.customerName}
-                                            onChange={e => setNewOrder({...newOrder, customerName: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" />
-                                        <input type="text" placeholder="Direcci√≥n *" value={newOrder.address}
-                                            onChange={e => setNewOrder({...newOrder, address: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" />
-                                        <select value={newOrder.city} onChange={e => setNewOrder({...newOrder, city: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                                            <option value="">Ciudad</option>
-                                            {colombianCities.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
-                                        <input type="number" placeholder="Valor *" value={newOrder.orderValue}
-                                            onChange={e => setNewOrder({...newOrder, orderValue: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" />
-                                        <input type="number" placeholder="Env√≠o" value={newOrder.deliveryFee}
-                                            onChange={e => setNewOrder({...newOrder, deliveryFee: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" />
-                                        <input type="text" placeholder="Tel√©fono" value={newOrder.customerPhone}
-                                            onChange={e => setNewOrder({...newOrder, customerPhone: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" />
-                                        <select value={newOrder.deliveryPerson} onChange={e => setNewOrder({...newOrder, deliveryPerson: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                                            <option value="">Repartidor</option>
-                                            {deliveryPersons.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <button onClick={handleAddOrder}
-                                        className="mt-6 btn-primary text-white px-6 py-3 rounded-lg font-medium inline-flex items-center space-x-2">
-                                        <Icon d={icons.plus} className="w-4 h-4" />
-                                        <span>Crear</span>
-                                    </button>
-                                </div>
-
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100">
-                                    <div className="px-6 py-4 border-b">
-                                        <h3 className="text-lg font-semibold flex items-center">
-                                            <Icon d={icons.package} className="w-5 h-5 mr-2 text-blue-600" />
-                                            Pedidos ({orders.length})
-                                        </h3>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Direcci√≥n</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Repartidor</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {!orders.length ? (
-                                                    <tr><td colSpan="6" className="px-6 py-12 text-center">
-                                                        <Icon d={icons.package} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                                        <p className="text-gray-500">Sin pedidos</p>
-                                                    </td></tr>
-                                                ) : orders.map(o => (
-                                                    <tr key={o.id} className="hover:bg-gray-50">
-                                                        <td className="px-6 py-4"><div className="font-medium">{o.customerName}</div></td>
-                                                        <td className="px-6 py-4"><div className="text-sm">{o.address}</div></td>
-                                                        <td className="px-6 py-4"><div className="text-sm">{o.deliveryPerson || '-'}</div></td>
-                                                        <td className="px-6 py-4"><div className="text-sm font-medium">${formatNumber(o.orderValue)}</div></td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                                                                o.status === 'entregado' ? 'bg-green-100 text-green-800' :
-                                                                o.status === 'en_transito' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
-                                                            }`}>
-                                                                {o.status === 'entregado' ? 'Entregado' : o.status === 'en_transito' ? 'En Tr√°nsito' : 'Pendiente'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            {o.status === 'pendiente' && (
-                                                                <button onClick={() => updateStatus(o.id, 'en_transito')}
-                                                                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Enviar</button>
-                                                            )}
-                                                            {o.status === 'en_transito' && (
-                                                                <button onClick={() => {
-                                                                    const t = prompt('Minutos:', '30');
-                                                                    const r = prompt('Calificaci√≥n (1-5):', '5');
-                                                                    if (t && r) completeDelivery(o.id, t, r);
-                                                                }} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Completar</button>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'delivery' && (
-                            <div className="space-y-6 fade-in">
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6">
-                                    <h3 className="text-lg font-semibold mb-6 flex items-center">
-                                        <Icon d={icons.users} className="w-5 h-5 mr-2 text-green-600" />
-                                        Registrar Repartidor
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <input type="text" placeholder="Nombre *" value={newDeliveryPerson.name}
-                                            onChange={e => setNewDeliveryPerson({...newDeliveryPerson, name: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500" />
-                                        <input type="text" placeholder="Tel√©fono" value={newDeliveryPerson.phone}
-                                            onChange={e => setNewDeliveryPerson({...newDeliveryPerson, phone: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500" />
-                                        <select value={newDeliveryPerson.vehicle} onChange={e => setNewDeliveryPerson({...newDeliveryPerson, vehicle: e.target.value})}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500">
-                                            <option value="moto">Moto</option>
-                                            <option value="bicicleta">Bicicleta</option>
-                                            <option value="carro">Carro</option>
-                                            <option value="pie">A pie</option>
-                                        </select>
-                                    </div>
-                                    <button onClick={handleAddDeliveryPerson}
-                                        className="mt-6 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center space-x-2">
-                                        <Icon d={icons.plus} className="w-4 h-4" />
-                                        <span>Agregar</span>
-                                    </button>
-                                </div>
-
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100">
-                                    <div className="px-6 py-4 border-b">
-                                        <h3 className="text-lg font-semibold flex items-center">
-                                            <Icon d={icons.users} className="w-5 h-5 mr-2 text-green-600" />
-                                            Repartidores ({deliveryPersons.length})
-                                        </h3>
-                                    </div>
-                                    <div className="p-6">
-                                        {!deliveryPersons.length ? (
-                                            <div className="text-center py-12">
-                                                <Icon d={icons.users} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                                <p className="text-gray-500">Sin repartidores</p>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                            <h2 className="text-2xl font-bold">Resumen del DÌa</h2>
+                                            <div className="flex flex-wrap gap-3">
+                                                <input
+                                                    type="date"
+                                                    value={filterDate}
+                                                    onChange={(e) => setFilterDate(e.target.value)}
+                                                    className="px-4 py-2 border rounded-lg"
+                                                />
+                                                <button
+                                                    onClick={() => setFilterDate(new Date().toISOString().split('T')[0])}
+                                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold"
+                                                >
+                                                    Hoy
+                                                </button>
+                                                <button
+                                                    onClick={() => setFilterDate('')}
+                                                    className="px-4 py-2 bg-gray-200 rounded-lg font-bold"
+                                                >
+                                                    Ver Todos
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {deliveryPersons.map(p => (
-                                                    <div key={p.id} className="border-2 border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all">
-                                                        <div className="flex items-center space-x-3 mb-4">
-                                                            <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                                                                <Icon d={icons.users} className="w-6 h-6 text-white" />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-xl">
+                                                <p className="text-sm mb-1">Pedidos Hoy</p>
+                                                <p className="text-4xl font-bold">{stats.todayOrders}</p>
+                                            </div>
+                                            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-xl">
+                                                <p className="text-sm mb-1">Ingresos Hoy</p>
+                                                <p className="text-4xl font-bold">${formatNumber(stats.todayRevenue)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'orders' && (
+                                    <div>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                            <h2 className="text-2xl font-bold">GestiÛn de Pedidos</h2>
+                                            <button
+                                                onClick={() => {
+                                                    setModalType('order');
+                                                    setShowModal(true);
+                                                }}
+                                                className="btn-primary text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
+                                            >
+                                                <Icon d={icons.plus} />
+                                                Crear Pedido
+                                            </button>
+                                        </div>
+
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">Cliente</th>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">DirecciÛn</th>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">Valor</th>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">Estado</th>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">Repartidor</th>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">Tiempo</th>
+                                                        <th className="px-4 py-3 text-left text-sm font-bold">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {orders.filter(o => !filterDate || o.createdAt.startsWith(filterDate)).map(order => {
+                                                        const timer = activeTimers[order.id];
+                                                        return (
+                                                            <tr key={order.id} className="border-b hover:bg-gray-50">
+                                                                <td className="px-4 py-4">
+                                                                    <div>
+                                                                        <p className="font-bold">{order.customerName}</p>
+                                                                        <p className="text-sm text-gray-500">{order.customerPhone}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-sm">{order.address}</td>
+                                                                <td className="px-4 py-4">
+                                                                    <span className="font-bold text-green-600">${formatNumber(order.orderValue)}</span>
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <select
+                                                                        value={order.status}
+                                                                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                                                        className={`status-badge status-${order.status} border-0`}
+                                                                    >
+                                                                        <option value="pending">? Pendiente</option>
+                                                                        <option value="in-transit">?? En Tr·nsito</option>
+                                                                        <option value="delivered">? Entregado</option>
+                                                                        <option value="cancelled">? Cancelado</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <select
+                                                                        value={order.deliveryPerson || ''}
+                                                                        onChange={(e) => assignDeliveryPerson(order.id, e.target.value)}
+                                                                        className="border rounded px-2 py-1 text-sm"
+                                                                    >
+                                                                        <option value="">Sin asignar</option>
+                                                                        {deliveryPersons.map(p => (
+                                                                            <option key={p.id} value={p.name}>{p.name}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    {order.status === 'in-transit' && timer?.isRunning ? (
+                                                                        <span className="text-blue-600 font-bold">
+                                                                            ?? {formatTime(timer.elapsed)}
+                                                                        </span>
+                                                                    ) : order.deliveryTime ? (
+                                                                        <span className="text-green-600 font-bold">
+                                                                            ? {order.deliveryTime} min
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-gray-400">-</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <button
+                                                                        onClick={() => window.open(`https://wa.me/${order.customerPhone.replace(/\D/g, '')}`, '_blank')}
+                                                                        className="whatsapp-btn text-white px-3 py-1 rounded text-sm"
+                                                                    >
+                                                                        ??
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'delivery' && (
+                                    <div>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                            <h2 className="text-2xl font-bold">Repartidores</h2>
+                                            <button
+                                                onClick={() => {
+                                                    setModalType('person');
+                                                    setShowModal(true);
+                                                }}
+                                                className="btn-primary text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
+                                            >
+                                                <Icon d={icons.plus} />
+                                                Agregar Repartidor
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {deliveryPersons.map(person => (
+                                                <div key={person.id} className="bg-white border-2 rounded-xl p-6">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div>
+                                                            <h3 className="text-xl font-bold">{person.name}</h3>
+                                                            <p className="text-gray-600">{person.phone}</p>
+                                                            {person.gpsActive && (
+                                                                <span className="text-xs text-green-600 font-bold">?? GPS Activo</span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => deleteDeliveryPerson(person.id)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            ???
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-blue-50 p-3 rounded-lg text-center">
+                                                            <div className="text-2xl font-bold text-blue-600">
+                                                                {orders.filter(o => o.deliveryPerson === person.name && o.status !== 'delivered').length}
                                                             </div>
-                                                            <div>
-                                                                <h4 className="font-bold">{p.name}</h4>
-                                                                <p className="text-sm text-gray-600">{p.phone}</p>
-                                                                <p className="text-xs text-gray-500 capitalize">{p.vehicle}</p>
+                                                            <div className="text-sm text-gray-600">Activos</div>
+                                                        </div>
+                                                        <div className="bg-green-50 p-3 rounded-lg text-center">
+                                                            <div className="text-2xl font-bold text-green-600">
+                                                                {orders.filter(o => o.deliveryPerson === person.name && o.status === 'delivered').length}
                                                             </div>
-                                                        </div>
-                                                        <div className="text-sm mb-4 p-3 bg-gray-50 rounded-lg space-y-2">
-                                                            <p className="flex justify-between">
-                                                                <span>Completadas:</span>
-                                                                <span className="font-bold">{orders.filter(o => o.deliveryPerson === p.name && o.status === 'entregado').length}</span>
-                                                            </p>
-                                                            <p className="flex justify-between">
-                                                                <span>Activos:</span>
-                                                                <span className="font-bold">{orders.filter(o => o.deliveryPerson === p.name && o.status !== 'entregado').length}</span>
-                                                            </p>
-                                                        </div>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            <button onClick={() => setViewingLocation(p)}
-                                                                className="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center space-x-1">
-                                                                <Icon d={icons.mapPin} className="w-3 h-3" />
-                                                                <span>Ubicaci√≥n</span>
-                                                            </button>
-                                                            <button onClick={() => sendWhatsApp(p)}
-                                                                className="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center space-x-1">
-                                                                <Icon d={icons.send} className="w-3 h-3" />
-                                                                <span>Enviar</span>
-                                                            </button>
-                                                        </div>
-                                                        <div className="flex gap-2 mt-2">
-                                                            <button onClick={() => handleEdit(p.id)}
-                                                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-xs">
-                                                                <Icon d={icons.edit} className="w-3 h-3 mx-auto" />
-                                                            </button>
-                                                            <button onClick={() => handleDelete(p.id)}
-                                                                className="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs">
-                                                                <Icon d={icons.trash} className="w-3 h-3 mx-auto" />
-                                                            </button>
+                                                            <div className="text-sm text-gray-600">Completados</div>
                                                         </div>
                                                     </div>
-                                                ))}
+
+                                                    <button
+                                                        onClick={() => copyDeliveryPersonUrl(person.id, person.name)}
+                                                        className="w-full whatsapp-btn text-white px-4 py-3 rounded-lg font-bold"
+                                                    >
+                                                        ?? Enviar Link + WhatsApp
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'waitlist' && (
+                                    <div>
+                                        <div className="mb-6">
+                                            <h2 className="text-2xl font-bold">Lista de Espera</h2>
+                                            <p className="text-gray-600">Orden de repartidores disponibles</p>
+                                        </div>
+
+                                        {waitlist.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {waitlist.sort((a, b) => new Date(a.joinedAt) - new Date(b.joinedAt)).map((entry, index) => {
+                                                    const person = deliveryPersons.find(p => p.id === entry.personId);
+                                                    return (
+                                                        <div key={entry.personId} className="bg-white border-2 rounded-xl p-4 waitlist-item">
+                                                            <div className="waitlist-number">{index + 1}</div>
+                                                            <div className="flex justify-between items-center">
+                                                                <div>
+                                                                    <h3 className="font-bold text-lg">{entry.personName}</h3>
+                                                                    <p className="text-sm text-gray-500">
+                                                                        IngresÛ: {new Date(entry.joinedAt).toLocaleTimeString('es-CO')}
+                                                                    </p>
+                                                                    {person?.gpsActive && (
+                                                                        <span className="text-xs text-green-600 font-bold">?? GPS Activo</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className="text-2xl">
+                                                                        {index === 0 ? '??' : '?'}
+                                                                    </span>
+                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                        {index === 0 ? 'Siguiente' : `PosiciÛn ${index + 1}`}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                                                <Icon d={icons.users} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                                <h3 className="text-xl font-bold text-gray-900 mb-2">Lista vacÌa</h3>
+                                                <p className="text-gray-600">No hay repartidores en lista de espera</p>
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                )}
                             </div>
-                        )}
-
-                        {activeTab === 'analytics' && (
-                            <div className="space-y-6 fade-in">
-                                <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6">
-                                    <h3 className="text-lg font-semibold mb-4 flex items-center">
-                                        <Icon d={icons.trending} className="w-5 h-5 mr-2 text-blue-500" />
-                                        An√°lisis
-                                    </h3>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                                            <span className="font-medium">Completados
-			</span>
-                                            <span className="font-bold text-green-600 text-lg">{metrics.completedOrders}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                                            <span className="font-medium">Tasa de √©xito</span>
-                                            <span className="font-bold text-blue-600 text-lg">{metrics.completionRate.toFixed(1)}%</span>
-                                        </div>
-                                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                                            <span className="font-medium">Tiempo promedio</span>
-                                            <span className="font-bold text-orange-600 text-lg">{metrics.avgDeliveryTime} min</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             );
@@ -951,4 +1306,4 @@
         ReactDOM.render(<DeliverySystem />, document.getElementById('root'));
     </script>
 </body>
-</html>								
+</html>
