@@ -1,0 +1,2783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Financiero Empresarial</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+        
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 20;
+        }
+        
+        .overflow-x-auto::-webkit-scrollbar {
+            height: 10px;
+        }
+        
+        .overflow-x-auto::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+        
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+        
+        .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // ICONOS SVG
+        const Calculator = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+            </svg>
+        );
+
+        const TrendingUp = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+            </svg>
+        );
+
+        const DollarSign = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+        );
+
+        const PieChart = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+            </svg>
+        );
+
+        const AlertCircle = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        );
+
+        const CheckCircle = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        );
+
+        const Info = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+
+        const Plus = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        );
+
+        const Trash = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+        );
+
+        const Calendar = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        );
+
+        const Settings = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"/>
+            </svg>
+        );
+
+        const HelpCircle = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        );
+
+        // COMPONENTE TOOLTIP
+        const Tooltip = ({ text, children }) => {
+            const [show, setShow] = useState(false);
+            
+            return (
+                <div className="relative inline-block">
+                    <div
+                        onMouseEnter={() => setShow(true)}
+                        onMouseLeave={() => setShow(false)}
+                        className="cursor-help"
+                    >
+                        {children}
+                    </div>
+                    {show && (
+                        <div className="absolute z-50 w-64 p-3 text-sm bg-gray-900 text-white rounded-lg shadow-lg -top-2 left-8 transform -translate-y-full">
+                            <div className="absolute w-3 h-3 bg-gray-900 transform rotate-45" 
+                                 style={{top: 'calc(100% - 6px)', left: '8px'}}></div>
+                            {text}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // DEFINICIONES DE CUENTAS Y CONCEPTOS
+        const definiciones = {
+            // Balance General - Activos
+            efectivo: "El dinero que tienes disponible inmediatamente en caja o en cuentas bancarias. Es el recurso más líquido y te permite enfrentar emergencias o aprovechar oportunidades. Un buen nivel de efectivo te da tranquilidad financiera.",
+            inversionesTemporales: "Dinero que invertiste en productos financieros de corto plazo como CDTs, fondos o bonos que puedes convertir rápidamente en efectivo (generalmente en menos de un año). Son una forma inteligente de hacer rendir tu efectivo sin perder liquidez.",
+            cuentasPorCobrar: "El dinero que tus clientes te deben por ventas que hiciste a crédito. Es importante porque representa ventas realizadas, pero debes monitorear que este dinero no se quede mucho tiempo 'en la calle' y que efectivamente lo cobres.",
+            inventarios: "El valor de los productos que tienes para vender o las materias primas para producir. Representa dinero invertido que aún no se ha convertido en ventas. Demasiado inventario inmoviliza capital; muy poco puede hacer que pierdas ventas.",
+            propiedadPlantaEquipo: "Tus activos físicos de largo plazo: edificios, maquinaria, vehículos, computadores, muebles. Son recursos que usas para operar el negocio y que te van a durar varios años. Representan inversiones importantes para la capacidad productiva.",
+            activosIntangibles: "Activos que no puedes tocar pero que tienen valor: marcas registradas, patentes, software, licencias, bases de datos de clientes, goodwill. En negocios modernos, estos activos pueden ser tan valiosos como los físicos.",
+            
+            // Balance General - Pasivos
+            cuentasPorPagar: "El dinero que le debes a tus proveedores por compras que hiciste a crédito. Es financiamiento gratuito (no paga intereses) siempre y cuando pagues a tiempo. Mantener buenas relaciones con proveedores es clave para seguir obteniendo este crédito.",
+            obligacionesFinancierasCP: "Préstamos y créditos bancarios que debes pagar en menos de un año. Incluye cuotas de corto plazo, sobregiros, líneas de crédito. Es deuda que presiona tu flujo de caja inmediato, por lo que necesitas liquidez para cubrirla.",
+            obligacionesFinancierasLP: "Préstamos y créditos bancarios que pagarás en más de un año. Al ser de largo plazo, no presionan tanto tu liquidez inmediata. Son útiles para financiar inversiones grandes como maquinaria o expansiones.",
+            
+            // Balance General - Patrimonio
+            capitalSocial: "El dinero que tú y los socios aportaron inicialmente al negocio, más cualquier capital adicional que hayan inyectado después. Es 'tu dinero' en el negocio, no le debes nada a nadie por este capital.",
+            utilidadesRetenidas: "Las ganancias acumuladas del negocio que no se han repartido como dividendos. Es dinero que el negocio ha generado y que se ha reinvertido para crecer. Representa el éxito histórico de la empresa.",
+            
+            // Estado de Resultados
+            ingresos: "Todo el dinero que entrará por las ventas o servicios prestados en el período, sin importar si ya lo cobraste o no. Incluye ventas de contado y a crédito. Es la línea de partida para medir la rentabilidad del negocio.",
+            costoVentas: "Lo que te costó producir o comprar los productos/servicios que vendiste. Incluye materias primas, mano de obra directa, y costos de producción. No incluye gastos de administración o ventas. Entre más bajo sea este costo respecto a tus ingresos, mejor.",
+            gastosOperacionales: "Todos los gastos necesarios para que el negocio funcione día a día: sueldos administrativos, arriendo, servicios públicos, publicidad, papelería, mantenimiento. Son gastos que se repiten cada mes y hay que controlarlos para mantener la rentabilidad.",
+            gastosFinancieros: "Los intereses y comisiones que pagas por tus préstamos y obligaciones financieras. Es el 'costo del dinero prestado'. Entre más deuda tengas y más alta sea la tasa de interés, más altos serán estos gastos.",
+            otrosIngresos: "Ingresos que no vienen de tu actividad principal de negocio. Ejemplos: ganaste dinero vendiendo un activo usado, recibiste rendimientos de inversiones, o tuviste algún ingreso extraordinario. Son 'bonos' extra para tu resultado.",
+            otrosGastos: "Gastos que no son normales en la operación del negocio. Ejemplos: pérdida por venta de un activo, multas, gastos extraordinarios. Idealmente deberían ser cero o muy bajos porque representan situaciones no recurrentes.",
+            
+            // Resultados calculados del Estado de Resultados
+            utilidadBruta: "Es lo que ganas después de restar el costo de lo vendido. Muestra si tu modelo de negocio es rentable a nivel básico. Por ejemplo, si vendes un producto en $100 y te costó $60, tu utilidad bruta es $40. Este margen debe ser suficiente para cubrir todos los demás gastos y aún dejar ganancia.",
+            utilidadOperacional: "Es la ganancia real que genera tu actividad principal del negocio, después de pagar costos de ventas y gastos de operación. No incluye intereses ni impuestos. Este número te dice si tu negocio en sí mismo es rentable, sin considerar cómo lo financias. Si es negativa, tu operación está perdiendo dinero.",
+            utilidadAntesImpuestos: "Es la ganancia total antes de pagar impuestos. Ya incluye todo: operación, intereses de préstamos, otros ingresos y gastos. Es el resultado completo del negocio antes de que el gobierno tome su parte. Si este número es positivo, tendrás que pagar impuestos.",
+            utilidadNeta: "Es la ganancia final, la 'línea de fondo'. Es lo que realmente te queda después de pagar absolutamente todo: costos, gastos, intereses e impuestos. Este dinero puede repartirse como dividendos a los socios o reinvertirse en el negocio. Es el número más importante del Estado de Resultados.",
+            
+            // Indicadores de Liquidez
+            razonCorriente: "Indica cuántos pesos tienes en activos corrientes por cada peso de deuda de corto plazo. Un valor mayor a 1.5 significa que tienes suficiente liquidez para operar tranquilo. Si es menor a 1, podrías tener problemas para pagar tus obligaciones inmediatas.",
+            pruebaAcida: "Es una medida más estricta de liquidez que no cuenta el inventario (porque puede ser difícil de vender rápido). Un valor mayor a 1 indica que puedes pagar tus deudas inmediatas incluso si no logras vender tu inventario. Entre 0.5 y 1 es aceptable, pero menos de 0.5 puede ser riesgoso.",
+            capitalTrabajo: "Es el dinero que te queda libre para operar el negocio después de pagar todas tus deudas de corto plazo. Un valor positivo significa que tienes recursos para funcionar. Si es negativo, estás usando deuda de corto plazo para financiar operaciones, lo cual puede ser peligroso.",
+            razonEfectivo: "Mide qué tan rápido puedes pagar tus deudas con el efectivo que tienes disponible hoy. Un valor de 0.5 o más es excelente porque significa que con tu efectivo puedes cubrir la mitad de tus deudas inmediatas. Entre 0.2 y 0.5 es aceptable.",
+            
+            // Indicadores de Endeudamiento
+            endeudamientoTotal: "Indica qué porcentaje de tus activos está financiado con deuda. Menos del 50% es saludable porque significa que más de la mitad de lo que tienes es tuyo. Entre 50-60% es aceptable. Más del 70% significa alta dependencia de deuda, lo que aumenta el riesgo financiero.",
+            endeudamientoPatrimonial: "Muestra cuántos pesos de deuda tienes por cada peso de tu capital propio. Menos de 100% significa que tu patrimonio es mayor que tu deuda (buena señal). Más de 100% indica que debes más de lo que tienes en capital propio.",
+            apalancamiento: "Indica cuántas veces tus activos superan tu patrimonio. Un valor de 2 o menos es saludable. Valores más altos significan que estás usando mucha deuda para financiar tus activos, lo cual aumenta el riesgo si el negocio no va bien.",
+            concentracionCP: "Muestra qué porcentaje de tu deuda total vence en menos de un año. Menos del 50% es ideal porque significa que la mayoría de tu deuda es de largo plazo y no presiona tu flujo de caja inmediato. Más del 50% requiere atención a la liquidez.",
+            autonomia: "Indica qué porcentaje de tus activos está financiado con tus propios recursos (sin deuda). Más del 50% es muy bueno porque significa independencia financiera. Entre 30-50% es aceptable. Menos de 30% indica alta dependencia de terceros.",
+            
+            // Indicadores de Rentabilidad
+            roe: "Muestra cuánto ganaste por cada peso que tú y los socios invirtieron en el negocio. Más del 15% es excelente porque significa que tu inversión está generando buenos retornos. Entre 10-15% es aceptable. Menos del 10% indica que podrías obtener mejores retornos en otras inversiones.",
+            roa: "Indica cuánto dinero genera cada peso invertido en activos del negocio. Más del 10% es excelente eficiencia. Entre 5-10% es aceptable. Menos del 5% sugiere que tus activos no están siendo muy productivos.",
+            margenBruto: "De cada $100 que vendes, cuánto te queda después de pagar lo que costó producir o comprar lo que vendiste. Entre más alto mejor. Menos del 20% es preocupante, 30-40% es bueno, más del 50% es excelente. Refleja tu poder de negociación con proveedores y clientes.",
+            margenOperacional: "De cada $100 en ventas, cuánto queda como ganancia después de pagar todos los costos y gastos del negocio (sin contar intereses). Más del 15% es excelente, 10-15% es bueno, 5-10% es aceptable. Menos del 5% indica que el negocio tiene poca rentabilidad operativa.",
+            margenNeto: "El porcentaje final de ganancia de cada $100 vendidos, después de pagar absolutamente todo (incluidos impuestos). Más del 10% es excelente, 5-10% es bueno, 2-5% es aceptable. Menos del 2% indica márgenes muy ajustados.",
+            margenEbitda: "Mide la rentabilidad operativa pura del negocio, antes de considerar intereses, impuestos y depreciación. Es útil para comparar negocios porque elimina efectos contables. Más del 20% es excelente, 10-20% es bueno, menos del 10% requiere mejorar eficiencia operativa.",
+            
+            // Indicadores de Eficiencia
+            rotacionActivos: "Muestra cuánto vendes por cada peso invertido en activos. Un valor de 1.5 o más indica que tus activos son productivos y generan buenas ventas. Menos de 1 sugiere que tienes activos ociosos o infrautilizados.",
+            rotacionActivosFijos: "Indica cuántas ventas generas con tu maquinaria, edificios y equipos. Valores altos significan que tus activos fijos están siendo bien aprovechados. Valores muy bajos sugieren capacidad instalada ociosa o inversiones que no están rindiendo.",
+            rotacionInventarios: "Cuántas veces al año logras vender y reponer tu inventario completo. Más de 6 veces es muy bueno (vendes rápido). Entre 4-6 es aceptable. Menos de 4 significa que tu inventario se mueve lento, lo que inmoviliza dinero y aumenta riesgos de obsolescencia.",
+            diasInventario: "Promedio de días que un producto permanece en tu inventario antes de venderse. Menos de 60 días es excelente (rotación rápida). Entre 60-90 días es aceptable. Más de 90 días indica inventario lento, lo cual inmoviliza capital y aumenta costos de almacenamiento.",
+            rotacionCxC: "Cuántas veces al año cobras todas tus ventas a crédito. Más rotación es mejor porque significa que cobras rápido y no tienes mucho dinero prestado a tus clientes.",
+            diasCxC: "Promedio de días que tardan tus clientes en pagarte. Menos de 30 días es excelente. Entre 30-45 días es normal. Entre 45-60 días requiere atención. Más de 60 días es riesgoso porque tienes mucho dinero en la calle y puedes tener problemas de liquidez.",
+            rotacionCxP: "Cuántas veces al año pagas a tus proveedores. No necesariamente más alto es mejor; lo ideal es equilibrar mantener buenas relaciones con proveedores sin afectar tu flujo de caja.",
+            diasCxP: "Promedio de días que tardas en pagar a tus proveedores. Entre 30-60 días es típico y saludable. Menos de 30 días puede significar que estás pagando muy rápido y no aprovechas el crédito. Más de 90 días puede deteriorar relaciones con proveedores.",
+            cicloConversion: "Días totales desde que inviertes dinero en inventario hasta que lo recuperas en efectivo de los clientes. Menos de 30 días es excelente gestión. Entre 30-60 días es aceptable. Más de 60 días significa que tu dinero está atrapado mucho tiempo en el ciclo operativo, lo que presiona tu liquidez.",
+            
+            // Indicadores Adicionales
+            coberturaIntereses: "Indica cuántas veces puedes pagar los intereses de tus deudas con la utilidad operacional. Un valor mayor a 3 es muy saludable porque significa que generas suficiente dinero operativo para cubrir los intereses y aún te sobra. Entre 2-3 es aceptable. Menos de 2 es riesgoso porque cualquier baja en ventas podría dificultar el pago de intereses.",
+            gastosFinancierosIngresos: "Muestra qué porcentaje de tus ventas se va en pagar intereses. Menos del 5% es excelente. Entre 5-10% es aceptable. Más del 10% indica que una parte significativa de tus ingresos se destina solo a pagar intereses, lo que reduce tu rentabilidad y aumenta el riesgo financiero.",
+            
+            // Flujo de Caja
+            vpn: "El VPN te dice si un proyecto o negocio vale la pena considerando el valor del dinero en el tiempo. Un VPN positivo significa que vas a ganar más de lo que ganarías invirtiendo ese dinero en otra opción (como un CDT o inversión). Un VPN negativo indica que perderías dinero comparado con otras alternativas. Entre más alto el VPN positivo, mejor el proyecto.",
+            tir: "La TIR es la rentabilidad real que te genera el proyecto expresada como un porcentaje anual. Si tu TIR es 20% y tu costo de oportunidad es 12%, significa que el proyecto te renta 8 puntos más que tu segunda mejor opción. Compárala siempre con la tasa de descuento: si la TIR es mayor, el proyecto es atractivo."
+        };
+
+        // UTILIDADES
+        const formatNumber = (value) => {
+            if (!value && value !== 0) return '';
+            const num = typeof value === 'string' ? parseFloat(value.replace(/[^\d.-]/g, '')) : value;
+            if (isNaN(num)) return '';
+            return num.toLocaleString('es-CO', {maximumFractionDigits: 0});
+        };
+
+        const parseNumber = (value) => {
+            if (!value) return 0;
+            const cleaned = value.toString().replace(/[^\d.-]/g, '');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : num;
+        };
+
+        // Formateo para inputs - Formato colombiano (punto para miles, coma para decimales)
+        const formatInputNumber = (value) => {
+            if (!value) return '';
+            // Remover todo excepto dígitos, punto y coma
+            let cleaned = value.toString().replace(/[^\d,]/g, '');
+            // Si hay coma, mantener solo la primera
+            const parts = cleaned.split(',');
+            if (parts.length > 2) {
+                cleaned = parts[0] + ',' + parts.slice(1).join('');
+            }
+            // Separar parte entera y decimal
+            const [integerPart, decimalPart] = cleaned.split(',');
+            // Formatear parte entera con puntos
+            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            // Retornar con o sin decimales
+            return decimalPart !== undefined ? `${formattedInteger},${decimalPart}` : formattedInteger;
+        };
+
+        const parseInputNumber = (value) => {
+            if (!value) return 0;
+            // Remover puntos (separadores de miles) y cambiar coma por punto (decimal)
+            const cleaned = value.toString().replace(/\./g, '').replace(',', '.');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : num;
+        };
+
+        // Función para calcular VPN
+        const calcularVPN = (flujos, tasaDescuento) => {
+            let vpn = 0;
+            for (let i = 0; i < flujos.length; i++) {
+                vpn += flujos[i] / Math.pow(1 + tasaDescuento / 100, i + 1);
+            }
+            return vpn;
+        };
+
+        // Función para calcular TIR usando el método de Newton-Raphson
+        const calcularTIR = (flujos) => {
+            let tir = 0.1; // Valor inicial del 10%
+            const maxIteraciones = 1000;
+            const precision = 0.0001;
+            
+            for (let i = 0; i < maxIteraciones; i++) {
+                let vpn = 0;
+                let derivada = 0;
+                
+                for (let j = 0; j < flujos.length; j++) {
+                    const periodo = j + 1;
+                    vpn += flujos[j] / Math.pow(1 + tir, periodo);
+                    derivada -= (periodo * flujos[j]) / Math.pow(1 + tir, periodo + 1);
+                }
+                
+                const nuevaTir = tir - vpn / derivada;
+                
+                if (Math.abs(nuevaTir - tir) < precision) {
+                    return nuevaTir * 100; // Retornar como porcentaje
+                }
+                
+                tir = nuevaTir;
+            }
+            
+            return tir * 100; // Retornar como porcentaje
+        };
+
+        // COMPONENTE PRINCIPAL
+        const DiagnosticoFinanciero = () => {
+          const [activeModule, setActiveModule] = useState('diagnostico');
+          
+          const [balanceGeneral, setBalanceGeneral] = useState({
+            efectivo: '', inversionesTemporales: '', cuentasPorCobrar: '', inventarios: '',
+            propiedadPlantaEquipo: '', activosIntangibles: '',
+            cuentasPorPagar: '', obligacionesFinancierasCP: '', obligacionesFinancierasLP: '',
+            capitalSocial: '', utilidadesRetenidas: '',
+          });
+
+          const [estadoResultados, setEstadoResultados] = useState({
+            ingresos: '', costoVentas: '', gastosOperacionales: '',
+            gastosFinancieros: '', otrosIngresos: '', otrosGastos: '',
+          });
+
+          // Estados Flujo de Caja
+          const [mesesHistoricos, setMesesHistoricos] = useState('6');
+          const [mesesProyeccion, setMesesProyeccion] = useState('6');
+          const [tasaCrecimiento, setTasaCrecimiento] = useState('5');
+          const [tasaDescuento, setTasaDescuento] = useState('12');
+          
+          const [rubrosIngresos, setRubrosIngresos] = useState([
+              { id: 1, nombre: 'Ventas Contado', valores: {} },
+              { id: 2, nombre: 'Ventas Crédito', valores: {} },
+              { id: 3, nombre: 'Otros Ingresos', valores: {} },
+          ]);
+          
+          const [rubrosEgresos, setRubrosEgresos] = useState([
+              { id: 1, nombre: 'Compras', valores: {} },
+              { id: 2, nombre: 'Nómina', valores: {} },
+              { id: 3, nombre: 'Arriendos', valores: {} },
+              { id: 4, nombre: 'Servicios Públicos', valores: {} },
+              { id: 5, nombre: 'Otros Egresos', valores: {} },
+          ]);
+
+          const [nextIngresoId, setNextIngresoId] = useState(4);
+          const [nextEgresoId, setNextEgresoId] = useState(6);
+
+          // Estados para Inversiones
+          const [actualizandoTasas, setActualizandoTasas] = useState(false);
+          const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+          const [productosInversion, setProductosInversion] = useState([
+            {
+              id: 1,
+              nombre: 'CDT Bancolombia',
+              descripcion: 'Certificado de Depósito a Término',
+              tasa: 12.5,
+              plazo: '180-365 días',
+              montoMinimo: 1000000,
+              riesgo: 'Muy Bajo',
+              ventajas: 'Tasa competitiva, respaldo bancario, Fogafín hasta $50M.',
+              ideal: 'Inversiones conservadoras de corto plazo.',
+              tipo: 'cdt'
+            },
+            {
+              id: 2,
+              nombre: 'Fondo Renta Fija CA',
+              descripcion: 'Corredores Asociados',
+              tasa: 11.8,
+              plazo: 'Flexible (Sin plazo fijo)',
+              montoMinimo: 500000,
+              riesgo: 'Bajo',
+              ventajas: 'Liquidez inmediata, diversificación en TES y bonos corporativos.',
+              ideal: 'Quien busca flexibilidad y buenos rendimientos.',
+              tipo: 'fondo'
+            },
+            {
+              id: 3,
+              nombre: 'TES B 2032',
+              descripcion: 'Títulos de Tesorería',
+              tasa: 10.9,
+              plazo: 'Hasta 2032 (7 años)',
+              montoMinimo: 2000000,
+              riesgo: 'Muy Bajo',
+              ventajas: 'Respaldo del Estado, exención de renta para personas naturales.',
+              ideal: 'Inversiones de largo plazo con beneficios tributarios.',
+              tipo: 'tes'
+            },
+            {
+              id: 4,
+              nombre: 'Cuentas Digitales',
+              descripcion: 'Nequi Bolsillo / Daviplata Metas',
+              tasa: 8.5,
+              plazo: 'Inmediato (0 días)',
+              montoMinimo: 10000,
+              riesgo: 'Muy Bajo',
+              ventajas: 'Liquidez total, sin monto mínimo alto, 100% digital, sin costos.',
+              ideal: 'Ahorros de emergencia con rentabilidad.',
+              tipo: 'digital'
+            },
+            {
+              id: 5,
+              nombre: 'Fondo Accionario COLCAP',
+              descripcion: 'Bolsa de Valores de Colombia',
+              tasa: 16,
+              plazo: 'Recomendado 3+ años',
+              montoMinimo: 300000,
+              riesgo: 'Medio-Alto',
+              ventajas: 'Mayor rentabilidad potencial, diversificación en 20 empresas líderes.',
+              ideal: 'Perfil moderado-agresivo con horizonte de largo plazo.',
+              tipo: 'acciones',
+              tasaVariable: true
+            }
+          ]);
+
+          // Función para actualizar tasas con búsqueda web
+          const actualizarTasasInversion = async () => {
+            setActualizandoTasas(true);
+            try {
+              // Simular búsqueda (en producción, aquí iría la llamada a web_search)
+              // Por ahora, simularemos una actualización con pequeñas variaciones
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              const nuevosProductos = productosInversion.map(prod => ({
+                ...prod,
+                tasa: prod.tasa + (Math.random() - 0.5) * 0.5 // Variación de ±0.25%
+              }));
+              
+              setProductosInversion(nuevosProductos);
+              setUltimaActualizacion(new Date());
+            } catch (error) {
+              console.error('Error actualizando tasas:', error);
+            } finally {
+              setActualizandoTasas(false);
+            }
+          };
+
+          // Handlers para Balance General con formato colombiano
+          const handleBalanceChange = (field, value) => {
+            const formatted = formatInputNumber(value);
+            setBalanceGeneral({...balanceGeneral, [field]: formatted});
+          };
+
+          // Handlers para Estado de Resultados con formato colombiano
+          const handleResultadosChange = (field, value) => {
+            const formatted = formatInputNumber(value);
+            setEstadoResultados({...estadoResultados, [field]: formatted});
+          };
+
+          // Cálculos Balance
+          const totales = useMemo(() => {
+            const activoCorriente = parseInputNumber(balanceGeneral.efectivo) +
+              parseInputNumber(balanceGeneral.inversionesTemporales) +
+              parseInputNumber(balanceGeneral.cuentasPorCobrar) +
+              parseInputNumber(balanceGeneral.inventarios);
+
+            const activoNoCorriente = parseInputNumber(balanceGeneral.propiedadPlantaEquipo) +
+              parseInputNumber(balanceGeneral.activosIntangibles);
+
+            const totalActivos = activoCorriente + activoNoCorriente;
+
+            const pasivoCorriente = parseInputNumber(balanceGeneral.cuentasPorPagar) +
+              parseInputNumber(balanceGeneral.obligacionesFinancierasCP);
+
+            const pasivoNoCorriente = parseInputNumber(balanceGeneral.obligacionesFinancierasLP);
+            const totalPasivos = pasivoCorriente + pasivoNoCorriente;
+
+            const totalPatrimonio = parseInputNumber(balanceGeneral.capitalSocial) +
+              parseInputNumber(balanceGeneral.utilidadesRetenidas);
+
+            return { activoCorriente, activoNoCorriente, totalActivos, pasivoCorriente, pasivoNoCorriente, totalPasivos, totalPatrimonio };
+          }, [balanceGeneral]);
+
+          // Cálculos Resultados
+          const resultados = useMemo(() => {
+            const ingresos = parseInputNumber(estadoResultados.ingresos);
+            const costoVentas = parseInputNumber(estadoResultados.costoVentas);
+            const utilidadBruta = ingresos - costoVentas;
+            const gastosOperacionales = parseInputNumber(estadoResultados.gastosOperacionales);
+            const utilidadOperacional = utilidadBruta - gastosOperacionales;
+            const gastosFinancieros = parseInputNumber(estadoResultados.gastosFinancieros);
+            const otrosIngresos = parseInputNumber(estadoResultados.otrosIngresos);
+            const otrosGastos = parseInputNumber(estadoResultados.otrosGastos);
+            const utilidadAntesImpuestos = utilidadOperacional - gastosFinancieros + otrosIngresos - otrosGastos;
+            const impuestos = utilidadAntesImpuestos * 0.35;
+            const utilidadNeta = utilidadAntesImpuestos - impuestos;
+
+            return { ingresos, costoVentas, utilidadBruta, gastosOperacionales, utilidadOperacional, 
+                     gastosFinancieros, utilidadAntesImpuestos, impuestos, utilidadNeta };
+          }, [estadoResultados]);
+
+          // Ratios
+          const ratios = useMemo(() => {
+            const { activoCorriente, pasivoCorriente, totalActivos, totalPasivos, totalPatrimonio } = totales;
+            const { utilidadNeta, ingresos, gastosFinancieros, utilidadOperacional } = resultados;
+
+            const liquidez = pasivoCorriente !== 0 ? activoCorriente / pasivoCorriente : 0;
+            const endeudamiento = totalActivos !== 0 ? totalPasivos / totalActivos : 0;
+            const roe = totalPatrimonio !== 0 ? utilidadNeta / totalPatrimonio : 0;
+            const margenNeto = ingresos !== 0 ? utilidadNeta / ingresos : 0;
+            const coberturaIntereses = gastosFinancieros !== 0 ? utilidadOperacional / gastosFinancieros : 0;
+
+            return { liquidez, endeudamiento, roe, margenNeto, coberturaIntereses };
+          }, [totales, resultados]);
+
+          // Indicadores Financieros Completos
+          const indicadoresCompletos = useMemo(() => {
+            const { activoCorriente, pasivoCorriente, totalActivos, totalPasivos, totalPatrimonio } = totales;
+            const { utilidadNeta, ingresos, gastosFinancieros, utilidadOperacional, costoVentas, utilidadBruta } = resultados;
+
+            // I. INDICADORES DE LIQUIDEZ
+            const liquidez = {
+              razonCorriente: pasivoCorriente !== 0 ? activoCorriente / pasivoCorriente : 0,
+              pruebaAcida: pasivoCorriente !== 0 ? 
+                (parseFloat(balanceGeneral.efectivo || 0) + parseFloat(balanceGeneral.inversionesTemporales || 0) + parseFloat(balanceGeneral.cuentasPorCobrar || 0)) / pasivoCorriente : 0,
+              capitalTrabajo: activoCorriente - pasivoCorriente,
+              razonEfectivo: pasivoCorriente !== 0 ? 
+                (parseFloat(balanceGeneral.efectivo || 0) + parseFloat(balanceGeneral.inversionesTemporales || 0)) / pasivoCorriente : 0,
+            };
+
+            // II. INDICADORES DE ENDEUDAMIENTO
+            const endeudamiento = {
+              endeudamientoTotal: totalActivos !== 0 ? (totalPasivos / totalActivos) * 100 : 0,
+              endeudamientoPatrimonial: totalPatrimonio !== 0 ? (totalPasivos / totalPatrimonio) * 100 : 0,
+              apalancamiento: totalPatrimonio !== 0 ? totalActivos / totalPatrimonio : 0,
+              concentracionCP: totalPasivos !== 0 ? (pasivoCorriente / totalPasivos) * 100 : 0,
+              autonomia: totalActivos !== 0 ? (totalPatrimonio / totalActivos) * 100 : 0,
+            };
+
+            // III. INDICADORES DE RENTABILIDAD
+            const rentabilidad = {
+              roe: totalPatrimonio !== 0 ? (utilidadNeta / totalPatrimonio) * 100 : 0,
+              roa: totalActivos !== 0 ? (utilidadNeta / totalActivos) * 100 : 0,
+              margenBruto: ingresos !== 0 ? (utilidadBruta / ingresos) * 100 : 0,
+              margenOperacional: ingresos !== 0 ? (utilidadOperacional / ingresos) * 100 : 0,
+              margenNeto: ingresos !== 0 ? (utilidadNeta / ingresos) * 100 : 0,
+              margenEbitda: ingresos !== 0 ? ((utilidadOperacional + (totalActivos * 0.1)) / ingresos) * 100 : 0,
+            };
+
+            // IV. INDICADORES DE EFICIENCIA
+            const eficiencia = {
+              rotacionActivos: totalActivos !== 0 ? ingresos / totalActivos : 0,
+              rotacionActivosFijos: parseFloat(balanceGeneral.propiedadPlantaEquipo || 0) !== 0 ? 
+                ingresos / parseFloat(balanceGeneral.propiedadPlantaEquipo || 0) : 0,
+              rotacionInventarios: parseFloat(balanceGeneral.inventarios || 0) !== 0 ? 
+                costoVentas / parseFloat(balanceGeneral.inventarios || 0) : 0,
+              diasInventario: parseFloat(balanceGeneral.inventarios || 0) !== 0 && costoVentas !== 0 ? 
+                (parseFloat(balanceGeneral.inventarios || 0) / costoVentas) * 365 : 0,
+              rotacionCxC: parseFloat(balanceGeneral.cuentasPorCobrar || 0) !== 0 ? 
+                ingresos / parseFloat(balanceGeneral.cuentasPorCobrar || 0) : 0,
+              diasCxC: parseFloat(balanceGeneral.cuentasPorCobrar || 0) !== 0 && ingresos !== 0 ? 
+                (parseFloat(balanceGeneral.cuentasPorCobrar || 0) / ingresos) * 365 : 0,
+              rotacionCxP: parseFloat(balanceGeneral.cuentasPorPagar || 0) !== 0 ? 
+                costoVentas / parseFloat(balanceGeneral.cuentasPorPagar || 0) : 0,
+              diasCxP: parseFloat(balanceGeneral.cuentasPorPagar || 0) !== 0 && costoVentas !== 0 ? 
+                (parseFloat(balanceGeneral.cuentasPorPagar || 0) / costoVentas) * 365 : 0,
+              cicloConversion: 0,
+            };
+
+            eficiencia.cicloConversion = eficiencia.diasInventario + eficiencia.diasCxC - eficiencia.diasCxP;
+
+            const otros = {
+              coberturaIntereses: gastosFinancieros !== 0 ? utilidadOperacional / gastosFinancieros : 0,
+              gastosFinancierosIngresos: ingresos !== 0 ? (gastosFinancieros / ingresos) * 100 : 0,
+            };
+
+            return { liquidez, endeudamiento, rentabilidad, eficiencia, otros };
+          }, [totales, resultados, balanceGeneral]);
+
+          // Función auxiliar para interpolación lineal de puntajes
+          const calcularPuntaje = (valor, rangos) => {
+            // rangos = [[valorMin, puntajeMin], [valorMax, puntajeMax]]
+            for (let i = 0; i < rangos.length - 1; i++) {
+              const [v1, p1] = rangos[i];
+              const [v2, p2] = rangos[i + 1];
+              if (valor >= v1 && valor <= v2) {
+                return p1 + ((valor - v1) / (v2 - v1)) * (p2 - p1);
+              }
+            }
+            if (valor < rangos[0][0]) return 0;
+            if (valor > rangos[rangos.length - 1][0]) return rangos[rangos.length - 1][1];
+            return 0;
+          };
+
+          // Puntuación de Salud Financiera
+          const puntuaciones = useMemo(() => {
+            // PUNTUACIÓN BALANCE GENERAL (0-100)
+            let puntajeBalance = 0;
+            
+            // 1. Liquidez (25 puntos) - Interpolación continua
+            const razonCorriente = indicadoresCompletos.liquidez.razonCorriente;
+            puntajeBalance += calcularPuntaje(razonCorriente, [
+              [0, 0], [0.5, 5], [0.75, 10], [1, 15], [1.5, 20], [2, 25], [3, 25]
+            ]);
+            
+            // 2. Endeudamiento (25 puntos) - Menor es mejor
+            const endeudamientoTotal = indicadoresCompletos.endeudamiento.endeudamientoTotal;
+            puntajeBalance += calcularPuntaje(100 - endeudamientoTotal, [
+              [0, 0], [20, 5], [30, 10], [40, 15], [50, 20], [70, 25], [100, 25]
+            ]);
+            
+            // 3. Solidez Patrimonial (25 puntos)
+            const autonomia = indicadoresCompletos.endeudamiento.autonomia;
+            puntajeBalance += calcularPuntaje(autonomia, [
+              [0, 0], [20, 5], [30, 10], [40, 15], [50, 20], [70, 25], [100, 25]
+            ]);
+            
+            // 4. Calidad de Activos (25 puntos)
+            const activoCorrientePorcentaje = totales.totalActivos > 0 ? 
+              (totales.activoCorriente / totales.totalActivos) * 100 : 0;
+            puntajeBalance += calcularPuntaje(activoCorrientePorcentaje, [
+              [0, 0], [20, 5], [30, 10], [40, 15], [50, 20], [60, 25], [100, 25]
+            ]);
+
+            // PUNTUACIÓN ESTADO DE RESULTADOS (0-100)
+            let puntajeResultados = 0;
+            
+            // 1. Margen Bruto (25 puntos)
+            const margenBruto = indicadoresCompletos.rentabilidad.margenBruto;
+            puntajeResultados += calcularPuntaje(margenBruto, [
+              [0, 0], [10, 5], [20, 10], [30, 15], [40, 20], [50, 25], [100, 25]
+            ]);
+            
+            // 2. Margen Operacional (25 puntos)
+            const margenOperacional = indicadoresCompletos.rentabilidad.margenOperacional;
+            puntajeResultados += calcularPuntaje(margenOperacional, [
+              [0, 0], [2, 5], [5, 10], [10, 15], [15, 20], [20, 25], [100, 25]
+            ]);
+            
+            // 3. Margen Neto (25 puntos)
+            const margenNeto = indicadoresCompletos.rentabilidad.margenNeto;
+            puntajeResultados += calcularPuntaje(margenNeto, [
+              [0, 0], [2, 5], [5, 10], [7, 15], [10, 20], [15, 25], [100, 25]
+            ]);
+            
+            // 4. ROE (25 puntos)
+            const roe = indicadoresCompletos.rentabilidad.roe;
+            puntajeResultados += calcularPuntaje(roe, [
+              [0, 0], [5, 5], [7, 10], [10, 15], [15, 20], [20, 25], [100, 25]
+            ]);
+
+            return { 
+              puntajeBalance: Math.round(puntajeBalance * 10) / 10, 
+              puntajeResultados: Math.round(puntajeResultados * 10) / 10 
+            };
+          }, [indicadoresCompletos, totales]);
+
+          // Funciones Flujo de Caja
+          const totalMeses = parseInt(mesesHistoricos) + parseInt(mesesProyeccion);
+          const mesesHistoricosNum = parseInt(mesesHistoricos);
+
+          const agregarRubroIngreso = () => {
+              setRubrosIngresos([...rubrosIngresos, { id: nextIngresoId, nombre: '', valores: {} }]);
+              setNextIngresoId(nextIngresoId + 1);
+          };
+
+          const agregarRubroEgreso = () => {
+              setRubrosEgresos([...rubrosEgresos, { id: nextEgresoId, nombre: '', valores: {} }]);
+              setNextEgresoId(nextEgresoId + 1);
+          };
+
+          const eliminarRubroIngreso = (id) => {
+              if (rubrosIngresos.length > 1) {
+                  setRubrosIngresos(rubrosIngresos.filter(r => r.id !== id));
+              }
+          };
+
+          const eliminarRubroEgreso = (id) => {
+              if (rubrosEgresos.length > 1) {
+                  setRubrosEgresos(rubrosEgresos.filter(r => r.id !== id));
+              }
+          };
+
+          const actualizarNombreRubro = (tipo, id, nuevoNombre) => {
+              if (tipo === 'ingreso') {
+                  setRubrosIngresos(rubrosIngresos.map(r => 
+                      r.id === id ? { ...r, nombre: nuevoNombre } : r
+                  ));
+              } else {
+                  setRubrosEgresos(rubrosEgresos.map(r => 
+                      r.id === id ? { ...r, nombre: nuevoNombre } : r
+                  ));
+              }
+          };
+
+          const actualizarValorRubro = (tipo, id, mes, valor) => {
+              const valorLimpio = valor.replace(/[^\d]/g, '');
+              
+              if (tipo === 'ingreso') {
+                  setRubrosIngresos(rubrosIngresos.map(r => 
+                      r.id === id ? { ...r, valores: { ...r.valores, [mes]: valorLimpio } } : r
+                  ));
+              } else {
+                  setRubrosEgresos(rubrosEgresos.map(r => 
+                      r.id === id ? { ...r, valores: { ...r.valores, [mes]: valorLimpio } } : r
+                  ));
+              }
+          };
+
+          // Cálculos Flujo de Caja
+          const calculosFlujoCaja = useMemo(() => {
+              const tasa = parseNumber(tasaCrecimiento) / 100;
+              const flujos = {};
+
+              for (let mes = 1; mes <= totalMeses; mes++) {
+                  const esProyeccion = mes > mesesHistoricosNum;
+                  
+                  let totalIngresos = 0;
+                  rubrosIngresos.forEach(rubro => {
+                      if (esProyeccion) {
+                          const valoresHistoricos = [];
+                          for (let i = 1; i <= mesesHistoricosNum; i++) {
+                              const val = parseNumber(rubro.valores[i]);
+                              if (val > 0) valoresHistoricos.push(val);
+                          }
+                          if (valoresHistoricos.length > 0) {
+                              const promedio = valoresHistoricos.reduce((a, b) => a + b, 0) / valoresHistoricos.length;
+                              const mesesProyectados = mes - mesesHistoricosNum;
+                              totalIngresos += promedio * Math.pow(1 + tasa, mesesProyectados);
+                          }
+                      } else {
+                          totalIngresos += parseNumber(rubro.valores[mes]);
+                      }
+                  });
+
+                  let totalEgresos = 0;
+                  rubrosEgresos.forEach(rubro => {
+                      if (esProyeccion) {
+                          const valoresHistoricos = [];
+                          for (let i = 1; i <= mesesHistoricosNum; i++) {
+                              const val = parseNumber(rubro.valores[i]);
+                              if (val > 0) valoresHistoricos.push(val);
+                          }
+                          if (valoresHistoricos.length > 0) {
+                              const promedio = valoresHistoricos.reduce((a, b) => a + b, 0) / valoresHistoricos.length;
+                              const mesesProyectados = mes - mesesHistoricosNum;
+                              totalEgresos += promedio * Math.pow(1 + tasa, mesesProyectados);
+                          }
+                      } else {
+                          totalEgresos += parseNumber(rubro.valores[mes]);
+                      }
+                  });
+
+                  flujos[mes] = {
+                      ingresos: totalIngresos,
+                      egresos: totalEgresos,
+                      flujoNeto: totalIngresos - totalEgresos,
+                      esProyeccion
+                  };
+              }
+
+              let acumulado = 0;
+              for (let mes = 1; mes <= totalMeses; mes++) {
+                  acumulado += flujos[mes].flujoNeto;
+                  flujos[mes].flujoAcumulado = acumulado;
+              }
+
+              const tasaDesc = parseNumber(tasaDescuento) / 100 / 12;
+              let vpn = 0;
+              for (let mes = 1; mes <= totalMeses; mes++) {
+                  vpn += flujos[mes].flujoNeto / Math.pow(1 + tasaDesc, mes);
+              }
+
+              let tir = 0.1;
+              let hayFlujos = false;
+              for (let mes = 1; mes <= totalMeses; mes++) {
+                  if (Math.abs(flujos[mes].flujoNeto) > 0) {
+                      hayFlujos = true;
+                      break;
+                  }
+              }
+              
+              if (hayFlujos) {
+                  for (let iter = 0; iter < 50; iter++) {
+                      let vpnIter = 0;
+                      let derivada = 0;
+                      for (let mes = 1; mes <= totalMeses; mes++) {
+                          const flujo = flujos[mes].flujoNeto;
+                          vpnIter += flujo / Math.pow(1 + tir, mes);
+                          derivada -= (mes * flujo) / Math.pow(1 + tir, mes + 1);
+                      }
+                      if (Math.abs(vpnIter) < 0.01 || Math.abs(derivada) < 0.0001) break;
+                      const tirNueva = tir - vpnIter / derivada;
+                      if (tirNueva < -0.99) tir = -0.99;
+                      else if (tirNueva > 10) tir = 10;
+                      else tir = tirNueva;
+                  }
+              }
+
+              let periodoRecuperacion = 0;
+              for (let mes = 1; mes <= totalMeses; mes++) {
+                  if (flujos[mes].flujoAcumulado >= 0 && periodoRecuperacion === 0) {
+                      periodoRecuperacion = mes;
+                  }
+              }
+
+              let sumaVPIngresos = 0;
+              let sumaVPEgresos = 0;
+              for (let mes = 1; mes <= totalMeses; mes++) {
+                  sumaVPIngresos += flujos[mes].ingresos / Math.pow(1 + tasaDesc, mes);
+                  sumaVPEgresos += flujos[mes].egresos / Math.pow(1 + tasaDesc, mes);
+              }
+              const indiceRentabilidad = sumaVPEgresos !== 0 ? sumaVPIngresos / sumaVPEgresos : 0;
+              const relacionBC = sumaVPEgresos !== 0 ? sumaVPIngresos / sumaVPEgresos : 0;
+
+              return { 
+                  flujos, 
+                  vpn, 
+                  tir: tir * 12 * 100,
+                  periodoRecuperacion,
+                  indiceRentabilidad,
+                  relacionBC
+              };
+          }, [rubrosIngresos, rubrosEgresos, mesesHistoricos, mesesProyeccion, tasaCrecimiento, tasaDescuento, totalMeses, mesesHistoricosNum]);
+
+          // Recomendaciones
+          const recomendaciones = useMemo(() => {
+            const items = [];
+
+            if (ratios.liquidez < 1) {
+              items.push({
+                tipo: 'advertencia',
+                categoria: 'Liquidez',
+                mensaje: 'Ratio de liquidez bajo. Considere mejorar el capital de trabajo.',
+              });
+            } else if (ratios.liquidez > 2) {
+              items.push({
+                tipo: 'info',
+                categoria: 'Liquidez',
+                mensaje: 'Exceso de liquidez. Evalúe oportunidades de inversión.',
+              });
+            }
+
+            if (ratios.endeudamiento > 0.6) {
+              items.push({
+                tipo: 'advertencia',
+                categoria: 'Endeudamiento',
+                mensaje: 'Alto nivel de endeudamiento. Priorice reducción de pasivos.',
+              });
+            } else if (ratios.endeudamiento < 0.3) {
+              items.push({
+                tipo: 'exito',
+                categoria: 'Endeudamiento',
+                mensaje: 'Bajo endeudamiento. Buena posición financiera.',
+              });
+            }
+
+            if (ratios.roe < 0.1) {
+              items.push({
+                tipo: 'advertencia',
+                categoria: 'Rentabilidad',
+                mensaje: 'ROE bajo. Mejore eficiencia operativa y control de costos.',
+              });
+            } else if (ratios.roe > 0.15) {
+              items.push({
+                tipo: 'exito',
+                categoria: 'Rentabilidad',
+                mensaje: 'Excelente ROE. Negocio altamente rentable.',
+              });
+            }
+
+            if (items.length === 0) {
+              items.push({
+                tipo: 'info',
+                categoria: 'General',
+                mensaje: 'Los indicadores están en rangos aceptables.',
+              });
+            }
+
+            return items;
+          }, [ratios]);
+
+          // RENDER
+          return (
+            <div className="min-h-screen bg-gray-50">
+              <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+                <div className="container mx-auto px-4 py-6">
+                  <h1 className="text-3xl font-bold">Diagnóstico Financiero Empresarial</h1>
+                  <p className="text-blue-100 mt-2">Sistema integral de análisis financiero y proyecciones</p>
+                </div>
+              </header>
+
+              <nav className="bg-white shadow-md sticky top-0 z-30">
+                <div className="container mx-auto px-4">
+                  <div className="flex overflow-x-auto">
+                    <button
+                      onClick={() => setActiveModule('diagnostico')}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-colors ${
+                        activeModule === 'diagnostico'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-blue-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calculator className="w-5 h-5" />
+                        Balance General
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveModule('resultados')}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-colors ${
+                        activeModule === 'resultados'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-blue-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <PieChart className="w-5 h-5" />
+                        Estado de Resultados
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveModule('flujoCaja')}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-colors ${
+                        activeModule === 'flujoCaja'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-blue-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Flujo de Caja
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveModule('indicadores')}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-colors ${
+                        activeModule === 'indicadores'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-blue-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calculator className="w-5 h-5" />
+                        Diagnóstico Financiero
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveModule('inversiones')}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-colors ${
+                        activeModule === 'inversiones'
+                          ? 'text-blue-600 border-b-2 border-blue-600'
+                          : 'text-gray-600 hover:text-blue-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-5 h-5" />
+                        Inversiones
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </nav>
+
+              <main className="container mx-auto px-4 py-8">
+                {activeModule === 'diagnostico' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Balance General</h2>
+                      <p className="text-gray-600">Ingrese los datos en pesos colombianos (COP)</p>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Activos</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Efectivo
+                            <Tooltip text={definiciones.efectivo}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.efectivo}
+                            onChange={(e) => handleBalanceChange('efectivo', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Inversiones Temporales
+                            <Tooltip text={definiciones.inversionesTemporales}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.inversionesTemporales}
+                            onChange={(e) => handleBalanceChange('inversionesTemporales', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Cuentas por Cobrar
+                            <Tooltip text={definiciones.cuentasPorCobrar}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.cuentasPorCobrar}
+                            onChange={(e) => handleBalanceChange('cuentasPorCobrar', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Inventarios
+                            <Tooltip text={definiciones.inventarios}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.inventarios}
+                            onChange={(e) => handleBalanceChange('inventarios', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Propiedad, Planta y Equipo
+                            <Tooltip text={definiciones.propiedadPlantaEquipo}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.propiedadPlantaEquipo}
+                            onChange={(e) => handleBalanceChange('propiedadPlantaEquipo', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Activos Intangibles
+                            <Tooltip text={definiciones.activosIntangibles}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.activosIntangibles}
+                            onChange={(e) => handleBalanceChange('activosIntangibles', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex justify-between items-center text-lg font-bold">
+                          <span>Total Activos</span>
+                          <span className="text-blue-600">${totales.totalActivos.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Pasivos</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Cuentas por Pagar
+                            <Tooltip text={definiciones.cuentasPorPagar}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.cuentasPorPagar}
+                            onChange={(e) => handleBalanceChange('cuentasPorPagar', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Obligaciones Financieras CP
+                            <Tooltip text={definiciones.obligacionesFinancierasCP}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.obligacionesFinancierasCP}
+                            onChange={(e) => handleBalanceChange('obligacionesFinancierasCP', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Obligaciones Financieras LP
+                            <Tooltip text={definiciones.obligacionesFinancierasLP}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.obligacionesFinancierasLP}
+                            onChange={(e) => handleBalanceChange('obligacionesFinancierasLP', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex justify-between items-center text-lg font-bold">
+                          <span>Total Pasivos</span>
+                          <span className="text-red-600">${totales.totalPasivos.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Patrimonio</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Capital Social
+                            <Tooltip text={definiciones.capitalSocial}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.capitalSocial}
+                            onChange={(e) => handleBalanceChange('capitalSocial', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Utilidades Retenidas
+                            <Tooltip text={definiciones.utilidadesRetenidas}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceGeneral.utilidadesRetenidas}
+                            onChange={(e) => handleBalanceChange('utilidadesRetenidas', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex justify-between items-center text-lg font-bold">
+                          <span>Total Patrimonio</span>
+                          <span className="text-green-600">${totales.totalPatrimonio.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Indicadores Financieros</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Ratio de Liquidez</div>
+                            <Tooltip text={definiciones.razonCorriente}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-2xl font-bold text-blue-600">{ratios.liquidez.toFixed(2)}</div>
+                          <div className="text-xs text-gray-500 mt-2">Capacidad de pago CP</div>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Endeudamiento</div>
+                            <Tooltip text={definiciones.endeudamientoTotal}>
+                              <HelpCircle className="w-4 h-4 text-purple-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-2xl font-bold text-purple-600">{(ratios.endeudamiento * 100).toFixed(1)}%</div>
+                          <div className="text-xs text-gray-500 mt-2">Nivel de apalancamiento</div>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">ROE</div><Tooltip text={definiciones.roe}><HelpCircle className="w-4 h-4 text-green-500 cursor-help" /></Tooltip></div>
+                          <div className="text-2xl font-bold text-green-600">{(ratios.roe * 100).toFixed(1)}%</div>
+                          <div className="text-xs text-gray-500 mt-2">Rentabilidad del patrimonio</div>
+                        </div>
+                        <div className="bg-yellow-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Margen Neto</div>
+                            <Tooltip text={definiciones.margenNeto}>
+                              <HelpCircle className="w-4 h-4 text-yellow-600 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-2xl font-bold text-yellow-600">{(ratios.margenNeto * 100).toFixed(1)}%</div>
+                          <div className="text-xs text-gray-500 mt-2">Utilidad sobre ventas</div>
+                        </div>
+                        <div className="bg-indigo-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Cobertura de Intereses</div>
+                            <Tooltip text={definiciones.coberturaIntereses}>
+                              <HelpCircle className="w-4 h-4 text-indigo-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-2xl font-bold text-indigo-600">{ratios.coberturaIntereses.toFixed(2)}x</div>
+                          <div className="text-xs text-gray-500 mt-2">Capacidad de pago de intereses</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-xl font-bold">Puntuación de Salud Financiera</h3>
+                          <p className="text-indigo-100 text-sm mt-1">Balance General</p>
+                        </div>
+                        <div className="bg-white bg-opacity-20 rounded-full p-4">
+                          <CheckCircle className="w-8 h-8" />
+                        </div>
+                      </div>
+                      <div className="flex items-end gap-4">
+                        <div className="text-6xl font-bold">{puntuaciones.puntajeBalance}</div>
+                        <div className="text-2xl mb-2">/100</div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-white border-opacity-30">
+                        <div className="flex items-center gap-2">
+                          {puntuaciones.puntajeBalance >= 80 && (
+                            <>
+                              <CheckCircle className="w-5 h-5" />
+                              <span className="font-semibold">Excelente salud financiera</span>
+                            </>
+                          )}
+                          {puntuaciones.puntajeBalance >= 60 && puntuaciones.puntajeBalance < 80 && (
+                            <>
+                              <Info className="w-5 h-5" />
+                              <span className="font-semibold">Buena salud financiera</span>
+                            </>
+                          )}
+                          {puntuaciones.puntajeBalance >= 40 && puntuaciones.puntajeBalance < 60 && (
+                            <>
+                              <AlertCircle className="w-5 h-5" />
+                              <span className="font-semibold">Salud financiera moderada</span>
+                            </>
+                          )}
+                          {puntuaciones.puntajeBalance < 40 && (
+                            <>
+                              <AlertCircle className="w-5 h-5" />
+                              <span className="font-semibold">Atención: Mejorar indicadores</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 text-sm text-indigo-100">
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Liquidez:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.liquidez.razonCorriente >= 2 ? '25' :
+                               indicadoresCompletos.liquidez.razonCorriente >= 1.5 ? '20' :
+                               indicadoresCompletos.liquidez.razonCorriente >= 1 ? '15' :
+                               indicadoresCompletos.liquidez.razonCorriente >= 0.75 ? '10' :
+                               indicadoresCompletos.liquidez.razonCorriente >= 0.5 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Endeudamiento:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.endeudamiento.endeudamientoTotal <= 30 ? '25' :
+                               indicadoresCompletos.endeudamiento.endeudamientoTotal <= 50 ? '20' :
+                               indicadoresCompletos.endeudamiento.endeudamientoTotal <= 60 ? '15' :
+                               indicadoresCompletos.endeudamiento.endeudamientoTotal <= 70 ? '10' :
+                               indicadoresCompletos.endeudamiento.endeudamientoTotal <= 80 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Solidez Patrimonial:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.endeudamiento.autonomia >= 70 ? '25' :
+                               indicadoresCompletos.endeudamiento.autonomia >= 50 ? '20' :
+                               indicadoresCompletos.endeudamiento.autonomia >= 40 ? '15' :
+                               indicadoresCompletos.endeudamiento.autonomia >= 30 ? '10' :
+                               indicadoresCompletos.endeudamiento.autonomia >= 20 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Calidad Activos:</span>
+                            <span className="font-semibold">
+                              {((totales.activoCorriente / totales.totalActivos) * 100) >= 60 ? '25' :
+                               ((totales.activoCorriente / totales.totalActivos) * 100) >= 50 ? '20' :
+                               ((totales.activoCorriente / totales.totalActivos) * 100) >= 40 ? '15' :
+                               ((totales.activoCorriente / totales.totalActivos) * 100) >= 30 ? '10' :
+                               ((totales.activoCorriente / totales.totalActivos) * 100) >= 20 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">Recomendaciones</h3>
+                      <div className="space-y-3">
+                        {recomendaciones.map((rec, index) => (
+                          <div key={index} className={`flex items-start gap-3 p-4 rounded-lg ${
+                            rec.tipo === 'exito' ? 'bg-green-50 border border-green-200' :
+                            rec.tipo === 'advertencia' ? 'bg-yellow-50 border border-yellow-200' :
+                            'bg-blue-50 border border-blue-200'
+                          }`}>
+                            {rec.tipo === 'exito' ? <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" /> :
+                             rec.tipo === 'advertencia' ? <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" /> :
+                             <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />}
+                            <div>
+                              <div className={`font-semibold ${
+                                rec.tipo === 'exito' ? 'text-green-900' :
+                                rec.tipo === 'advertencia' ? 'text-yellow-900' :
+                                'text-blue-900'
+                              }`}>{rec.categoria}</div>
+                              <div className={`text-sm ${
+                                rec.tipo === 'exito' ? 'text-green-800' :
+                                rec.tipo === 'advertencia' ? 'text-yellow-800' :
+                                'text-blue-800'
+                              }`}>{rec.mensaje}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'resultados' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Estado de Resultados</h2>
+                      <p className="text-gray-600">Análisis de ingresos y gastos del período</p>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Ingresos Totales
+                            <Tooltip text={definiciones.ingresos}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={estadoResultados.ingresos}
+                            onChange={(e) => handleResultadosChange('ingresos', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Costo de Ventas
+                            <Tooltip text={definiciones.costoVentas}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={estadoResultados.costoVentas}
+                            onChange={(e) => handleResultadosChange('costoVentas', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Gastos Operacionales
+                            <Tooltip text={definiciones.gastosOperacionales}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={estadoResultados.gastosOperacionales}
+                            onChange={(e) => handleResultadosChange('gastosOperacionales', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Gastos Financieros
+                            <Tooltip text={definiciones.gastosFinancieros}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={estadoResultados.gastosFinancieros}
+                            onChange={(e) => handleResultadosChange('gastosFinancieros', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Otros Ingresos
+                            <Tooltip text={definiciones.otrosIngresos}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={estadoResultados.otrosIngresos}
+                            onChange={(e) => handleResultadosChange('otrosIngresos', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            Otros Gastos
+                            <Tooltip text={definiciones.otrosGastos}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </label>
+                          <input
+                            type="text"
+                            value={estadoResultados.otrosGastos}
+                            onChange={(e) => handleResultadosChange('otrosGastos', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-6">Resumen de Resultados</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center pb-3 border-b">
+                          <span className="text-gray-700">Ingresos</span>
+                          <span className="font-semibold text-green-600">${resultados.ingresos.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b">
+                          <span className="text-gray-700">- Costo de Ventas</span>
+                          <span className="font-semibold text-red-600">${resultados.costoVentas.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b bg-blue-50 px-3 py-2 rounded">
+                          <span className="font-semibold text-blue-900">Utilidad Bruta</span>
+                          <span className="font-bold text-blue-600">${resultados.utilidadBruta.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b">
+                          <span className="text-gray-700">- Gastos Operacionales</span>
+                          <span className="font-semibold text-red-600">${resultados.gastosOperacionales.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b bg-blue-50 px-3 py-2 rounded">
+                          <span className="font-semibold text-blue-900">Utilidad Operacional</span>
+                          <span className="font-bold text-blue-600">${resultados.utilidadOperacional.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b">
+                          <span className="text-gray-700">- Gastos Financieros</span>
+                          <span className="font-semibold text-red-600">${resultados.gastosFinancieros.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b bg-purple-50 px-3 py-2 rounded">
+                          <span className="font-semibold text-purple-900">Utilidad Antes de Impuestos</span>
+                          <span className="font-bold text-purple-600">${resultados.utilidadAntesImpuestos.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b">
+                          <span className="text-gray-700">- Impuestos (35%)</span>
+                          <span className="font-semibold text-red-600">${resultados.impuestos.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-4 rounded-lg mt-4">
+                          <span className="text-lg font-bold">Utilidad Neta</span>
+                          <span className="text-2xl font-bold">${resultados.utilidadNeta.toLocaleString('es-CO', {maximumFractionDigits: 0})}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-6 border border-indigo-200">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Info className="w-6 h-6 text-indigo-600" />
+                        Entendiendo los Resultados
+                      </h3>
+                      <div className="space-y-3 text-sm text-gray-700">
+                        <div className="bg-white p-4 rounded-lg">
+                          <p className="font-semibold text-green-700 mb-2">💰 Utilidad Bruta (${formatNumber(resultados.utilidadBruta)})</p>
+                          <p>{definiciones.utilidadBruta}</p>
+                          <p className="mt-2 text-xs text-gray-600">📌 En tu caso: De ${formatNumber(resultados.ingresos)} en ventas, quedan ${formatNumber(resultados.utilidadBruta)} (el {((resultados.utilidadBruta/resultados.ingresos)*100).toFixed(1)}%) después de restar los costos de producción.</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <p className="font-semibold text-blue-700 mb-2">📊 Utilidad Operacional (${formatNumber(resultados.utilidadOperacional)})</p>
+                          <p>{definiciones.utilidadOperacional}</p>
+                          <p className="mt-2 text-xs text-gray-600">📌 En tu caso: Tu operación {resultados.utilidadOperacional >= 0 ? 'genera' : 'pierde'} ${formatNumber(Math.abs(resultados.utilidadOperacional))} antes de considerar intereses bancarios e impuestos.</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <p className="font-semibold text-purple-700 mb-2">💼 Utilidad Antes de Impuestos (${formatNumber(resultados.utilidadAntesImpuestos)})</p>
+                          <p>{definiciones.utilidadAntesImpuestos}</p>
+                          <p className="mt-2 text-xs text-gray-600">📌 En tu caso: {resultados.utilidadAntesImpuestos >= 0 ? `Tendrás que pagar $${formatNumber(resultados.impuestos)} en impuestos (35%).` : 'No pagarás impuestos porque tuviste pérdida.'}</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <p className="font-semibold text-green-800 mb-2">✅ Utilidad Neta (${formatNumber(resultados.utilidadNeta)})</p>
+                          <p>{definiciones.utilidadNeta}</p>
+                          <p className="mt-2 text-xs text-gray-600">📌 En tu caso: {resultados.utilidadNeta >= 0 ? `Ganaste $${formatNumber(resultados.utilidadNeta)} netos. Este dinero puede repartirse como dividendos o reinvertirse en el negocio.` : `El negocio tuvo una pérdida de $${formatNumber(Math.abs(resultados.utilidadNeta))} en el período.`}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+                        <div className="text-sm opacity-90 mb-2">Margen Bruto</div>
+                        <div className="text-3xl font-bold">
+                          {((resultados.utilidadBruta / resultados.ingresos) * 100 || 0).toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+                        <div className="text-sm opacity-90 mb-2">Margen Operacional</div>
+                        <div className="text-3xl font-bold">
+                          {((resultados.utilidadOperacional / resultados.ingresos) * 100 || 0).toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-md p-6 text-white">
+                        <div className="text-sm opacity-90 mb-2">Margen Neto</div>
+                        <div className="text-3xl font-bold">
+                          {((resultados.utilidadNeta / resultados.ingresos) * 100 || 0).toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg shadow-lg p-6 text-white">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-xl font-bold">Puntuación de Rentabilidad</h3>
+                          <p className="text-emerald-100 text-sm mt-1">Estado de Resultados</p>
+                        </div>
+                        <div className="bg-white bg-opacity-20 rounded-full p-4">
+                          <TrendingUp className="w-8 h-8" />
+                        </div>
+                      </div>
+                      <div className="flex items-end gap-4">
+                        <div className="text-6xl font-bold">{puntuaciones.puntajeResultados}</div>
+                        <div className="text-2xl mb-2">/100</div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-white border-opacity-30">
+                        <div className="flex items-center gap-2">
+                          {puntuaciones.puntajeResultados >= 80 && (
+                            <>
+                              <CheckCircle className="w-5 h-5" />
+                              <span className="font-semibold">Rentabilidad excepcional</span>
+                            </>
+                          )}
+                          {puntuaciones.puntajeResultados >= 60 && puntuaciones.puntajeResultados < 80 && (
+                            <>
+                              <Info className="w-5 h-5" />
+                              <span className="font-semibold">Buena rentabilidad</span>
+                            </>
+                          )}
+                          {puntuaciones.puntajeResultados >= 40 && puntuaciones.puntajeResultados < 60 && (
+                            <>
+                              <AlertCircle className="w-5 h-5" />
+                              <span className="font-semibold">Rentabilidad moderada</span>
+                            </>
+                          )}
+                          {puntuaciones.puntajeResultados < 40 && (
+                            <>
+                              <AlertCircle className="w-5 h-5" />
+                              <span className="font-semibold">Mejorar márgenes de ganancia</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 text-sm text-emerald-100">
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Margen Bruto:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.rentabilidad.margenBruto >= 50 ? '25' :
+                               indicadoresCompletos.rentabilidad.margenBruto >= 40 ? '20' :
+                               indicadoresCompletos.rentabilidad.margenBruto >= 30 ? '15' :
+                               indicadoresCompletos.rentabilidad.margenBruto >= 20 ? '10' :
+                               indicadoresCompletos.rentabilidad.margenBruto >= 10 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Margen Operacional:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.rentabilidad.margenOperacional >= 20 ? '25' :
+                               indicadoresCompletos.rentabilidad.margenOperacional >= 15 ? '20' :
+                               indicadoresCompletos.rentabilidad.margenOperacional >= 10 ? '15' :
+                               indicadoresCompletos.rentabilidad.margenOperacional >= 5 ? '10' :
+                               indicadoresCompletos.rentabilidad.margenOperacional >= 2 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Margen Neto:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.rentabilidad.margenNeto >= 15 ? '25' :
+                               indicadoresCompletos.rentabilidad.margenNeto >= 10 ? '20' :
+                               indicadoresCompletos.rentabilidad.margenNeto >= 7 ? '15' :
+                               indicadoresCompletos.rentabilidad.margenNeto >= 5 ? '10' :
+                               indicadoresCompletos.rentabilidad.margenNeto >= 2 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>ROE:</span>
+                            <span className="font-semibold">
+                              {indicadoresCompletos.rentabilidad.roe >= 20 ? '25' :
+                               indicadoresCompletos.rentabilidad.roe >= 15 ? '20' :
+                               indicadoresCompletos.rentabilidad.roe >= 10 ? '15' :
+                               indicadoresCompletos.rentabilidad.roe >= 7 ? '10' :
+                               indicadoresCompletos.rentabilidad.roe >= 5 ? '5' : '0'}/25
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'flujoCaja' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Flujo de Caja</h2>
+                      <p className="text-gray-600">Análisis horizontal con proyecciones automáticas</p>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Settings className="w-6 h-6 text-blue-600" />
+                        <h3 className="text-xl font-bold text-gray-900">Configuración</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              Meses Históricos
+                            </div>
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="24"
+                            value={mesesHistoricos}
+                            onChange={(e) => setMesesHistoricos(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Datos reales a ingresar</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4" />
+                              Meses Proyección
+                            </div>
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="24"
+                            value={mesesProyeccion}
+                            onChange={(e) => setMesesProyeccion(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Meses futuros a proyectar</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Tasa de Crecimiento (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={tasaCrecimiento}
+                            onChange={(e) => setTasaCrecimiento(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Para proyecciones futuras</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-4 h-4" />
+                              Tasa de Descuento (% EA)
+                            </div>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={tasaDescuento}
+                            onChange={(e) => setTasaDescuento(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Costo de oportunidad del capital</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <span className="font-semibold">Total de meses:</span> {totalMeses} 
+                          <span className="text-blue-600 ml-2">
+                            ({mesesHistoricos} históricos + {mesesProyeccion} proyectados)
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                      <div className="p-6 border-b border-gray-200">
+                        <h3 className="text-xl font-bold text-gray-900">Flujo de Caja Proyectado</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Los campos en azul son históricos (editables) y los campos en verde son proyecciones automáticas
+                        </p>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse">
+                          <thead>
+                            <tr className="bg-gray-100 sticky-header">
+                              <th className="px-4 py-3 text-left font-bold border-b-2 border-gray-300 sticky-col bg-gray-100 min-w-[200px]">
+                                Concepto
+                              </th>
+                              {[...Array(totalMeses)].map((_, i) => {
+                                const mes = i + 1;
+                                const esProyeccion = mes > mesesHistoricosNum;
+                                return (
+                                  <th 
+                                    key={mes}
+                                    className={`px-3 py-3 text-center font-semibold border-b-2 border-gray-300 min-w-[140px] ${
+                                      esProyeccion ? 'bg-green-50' : 'bg-blue-50'
+                                    }`}
+                                  >
+                                    <div>Mes {mes}</div>
+                                    {esProyeccion && (
+                                      <div className="text-xs text-green-600 font-normal">(Proyección)</div>
+                                    )}
+                                  </th>
+                                );
+                              })}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="bg-green-600 text-white">
+                              <td className="px-4 py-3 font-bold sticky-col bg-green-600" colSpan={totalMeses + 1}>
+                                INGRESOS
+                              </td>
+                            </tr>
+                            
+                            {rubrosIngresos.map((rubro) => (
+                              <tr key={rubro.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-2 sticky-col bg-white">
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={rubro.nombre}
+                                      onChange={(e) => actualizarNombreRubro('ingreso', rubro.id, e.target.value)}
+                                      placeholder="Nombre del rubro"
+                                      className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
+                                    {rubrosIngresos.length > 1 && (
+                                      <button
+                                        onClick={() => eliminarRubroIngreso(rubro.id)}
+                                        className="text-red-600 hover:text-red-800 p-1"
+                                        title="Eliminar"
+                                      >
+                                        <Trash className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                {[...Array(totalMeses)].map((_, i) => {
+                                  const mes = i + 1;
+                                  const esProyeccion = mes > mesesHistoricosNum;
+                                  
+                                  let valorProyectado = 0;
+                                  if (esProyeccion) {
+                                    const valoresHistoricos = [];
+                                    for (let j = 1; j <= mesesHistoricosNum; j++) {
+                                      const val = parseNumber(rubro.valores[j]);
+                                      if (val > 0) valoresHistoricos.push(val);
+                                    }
+                                    if (valoresHistoricos.length > 0) {
+                                      const promedio = valoresHistoricos.reduce((a, b) => a + b, 0) / valoresHistoricos.length;
+                                      const mesesProyectados = mes - mesesHistoricosNum;
+                                      const tasa = parseNumber(tasaCrecimiento) / 100;
+                                      valorProyectado = promedio * Math.pow(1 + tasa, mesesProyectados);
+                                    }
+                                  }
+                                  
+                                  return (
+                                    <td key={mes} className={`px-3 py-2 ${esProyeccion ? 'bg-green-50' : ''}`}>
+                                      {esProyeccion ? (
+                                        <div className="text-right font-medium text-green-700">
+                                          ${formatNumber(valorProyectado)}
+                                        </div>
+                                      ) : (
+                                        <input
+                                          type="text"
+                                          inputMode="numeric"
+                                          value={formatNumber(rubro.valores[mes])}
+                                          onChange={(e) => actualizarValorRubro('ingreso', rubro.id, mes, e.target.value)}
+                                          className="w-full px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                          placeholder="0"
+                                        />
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                            
+                            <tr className="border-b">
+                              <td className="px-4 py-2 sticky-col bg-white">
+                                <button
+                                  onClick={agregarRubroIngreso}
+                                  className="flex items-center gap-2 text-green-600 hover:text-green-800 font-medium"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Agregar Ingreso
+                                </button>
+                              </td>
+                              <td colSpan={totalMeses}></td>
+                            </tr>
+
+                            <tr className="bg-green-100 font-bold">
+                              <td className="px-4 py-3 sticky-col bg-green-100">TOTAL INGRESOS</td>
+                              {[...Array(totalMeses)].map((_, i) => {
+                                const mes = i + 1;
+                                const total = calculosFlujoCaja.flujos[mes].ingresos;
+                                return (
+                                  <td key={mes} className="px-3 py-3 text-right text-green-700">
+                                    ${formatNumber(total)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+
+                            <tr className="bg-red-600 text-white">
+                              <td className="px-4 py-3 font-bold sticky-col bg-red-600" colSpan={totalMeses + 1}>
+                                EGRESOS
+                              </td>
+                            </tr>
+                            
+                            {rubrosEgresos.map((rubro) => (
+                              <tr key={rubro.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-2 sticky-col bg-white">
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={rubro.nombre}
+                                      onChange={(e) => actualizarNombreRubro('egreso', rubro.id, e.target.value)}
+                                      placeholder="Nombre del rubro"
+                                      className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
+                                    {rubrosEgresos.length > 1 && (
+                                      <button
+                                        onClick={() => eliminarRubroEgreso(rubro.id)}
+                                        className="text-red-600 hover:text-red-800 p-1"
+                                        title="Eliminar"
+                                      >
+                                        <Trash className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                {[...Array(totalMeses)].map((_, i) => {
+                                  const mes = i + 1;
+                                  const esProyeccion = mes > mesesHistoricosNum;
+                                  
+                                  let valorProyectado = 0;
+                                  if (esProyeccion) {
+                                    const valoresHistoricos = [];
+                                    for (let j = 1; j <= mesesHistoricosNum; j++) {
+                                      const val = parseNumber(rubro.valores[j]);
+                                      if (val > 0) valoresHistoricos.push(val);
+                                    }
+                                    if (valoresHistoricos.length > 0) {
+                                      const promedio = valoresHistoricos.reduce((a, b) => a + b, 0) / valoresHistoricos.length;
+                                      const mesesProyectados = mes - mesesHistoricosNum;
+                                      const tasa = parseNumber(tasaCrecimiento) / 100;
+                                      valorProyectado = promedio * Math.pow(1 + tasa, mesesProyectados);
+                                    }
+                                  }
+                                  
+                                  return (
+                                    <td key={mes} className={`px-3 py-2 ${esProyeccion ? 'bg-green-50' : ''}`}>
+                                      {esProyeccion ? (
+                                        <div className="text-right font-medium text-green-700">
+                                          ${formatNumber(valorProyectado)}
+                                        </div>
+                                      ) : (
+                                        <input
+                                          type="text"
+                                          inputMode="numeric"
+                                          value={formatNumber(rubro.valores[mes])}
+                                          onChange={(e) => actualizarValorRubro('egreso', rubro.id, mes, e.target.value)}
+                                          className="w-full px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                          placeholder="0"
+                                        />
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                            
+                            <tr className="border-b">
+                              <td className="px-4 py-2 sticky-col bg-white">
+                                <button
+                                  onClick={agregarRubroEgreso}
+                                  className="flex items-center gap-2 text-red-600 hover:text-red-800 font-medium"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Agregar Egreso
+                                </button>
+                              </td>
+                              <td colSpan={totalMeses}></td>
+                            </tr>
+
+                            <tr className="bg-red-100 font-bold">
+                              <td className="px-4 py-3 sticky-col bg-red-100">TOTAL EGRESOS</td>
+                              {[...Array(totalMeses)].map((_, i) => {
+                                const mes = i + 1;
+                                const total = calculosFlujoCaja.flujos[mes].egresos;
+                                return (
+                                  <td key={mes} className="px-3 py-3 text-right text-red-700">
+                                    ${formatNumber(total)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+
+                            <tr className="bg-blue-600 text-white font-bold">
+                              <td className="px-4 py-3 sticky-col bg-blue-600">FLUJO NETO</td>
+                              {[...Array(totalMeses)].map((_, i) => {
+                                const mes = i + 1;
+                                const flujo = calculosFlujoCaja.flujos[mes].flujoNeto;
+                                return (
+                                  <td key={mes} className={`px-3 py-3 text-right ${flujo >= 0 ? 'text-white' : 'text-yellow-200'}`}>
+                                    ${formatNumber(flujo)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+
+                            <tr className="bg-blue-800 text-white font-bold">
+                              <td className="px-4 py-3 sticky-col bg-blue-800">FLUJO ACUMULADO</td>
+                              {[...Array(totalMeses)].map((_, i) => {
+                                const mes = i + 1;
+                                const acumulado = calculosFlujoCaja.flujos[mes].flujoAcumulado;
+                                return (
+                                  <td key={mes} className={`px-3 py-3 text-right ${acumulado >= 0 ? 'text-white' : 'text-yellow-200'}`}>
+                                    ${formatNumber(acumulado)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Indicadores VPN y TIR */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-md p-6 border-2 border-green-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                            <DollarSign className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-gray-900">Valor Presente Neto (VPN)</h3>
+                              <Tooltip text={definiciones.vpn}>
+                                <HelpCircle className="w-5 h-5 text-green-600 cursor-help" />
+                              </Tooltip>
+                            </div>
+                            <p className="text-sm text-gray-600">Con tasa de descuento {tasaDescuento}% EA</p>
+                          </div>
+                        </div>
+                        <div className={`text-4xl font-bold mb-4 ${calculosFlujoCaja.vpn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${formatNumber(calculosFlujoCaja.vpn)}
+                        </div>
+                        <div className={`p-4 rounded-lg ${calculosFlujoCaja.vpn >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                          <div className="flex items-start gap-2">
+                            {calculosFlujoCaja.vpn >= 0 ? (
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            )}
+                            <div className={`text-sm ${calculosFlujoCaja.vpn >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+                              {calculosFlujoCaja.vpn >= 0 ? (
+                                <p><strong>✓ Proyecto viable:</strong> El valor actual de los flujos futuros es positivo. El proyecto genera valor por encima del costo de oportunidad del capital.</p>
+                              ) : (
+                                <p><strong>✗ Proyecto no viable:</strong> El valor actual de los flujos futuros es negativo. El proyecto destruye valor considerando el costo de oportunidad.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 border-2 border-blue-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <TrendingUp className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-gray-900">Tasa Interna de Retorno (TIR)</h3>
+                              <Tooltip text={definiciones.tir}>
+                                <HelpCircle className="w-5 h-5 text-blue-600 cursor-help" />
+                              </Tooltip>
+                            </div>
+                            <p className="text-sm text-gray-600">Rentabilidad del proyecto</p>
+                          </div>
+                        </div>
+                        <div className={`text-4xl font-bold mb-4 ${calculosFlujoCaja.tir >= parseNumber(tasaDescuento) ? 'text-blue-600' : 'text-orange-600'}`}>
+                          {calculosFlujoCaja.tir.toFixed(2)}%
+                        </div>
+                        <div className={`p-4 rounded-lg ${calculosFlujoCaja.tir >= parseNumber(tasaDescuento) ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                          <div className="flex items-start gap-2">
+                            {calculosFlujoCaja.tir >= parseNumber(tasaDescuento) ? (
+                              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                            )}
+                            <div className={`text-sm ${calculosFlujoCaja.tir >= parseNumber(tasaDescuento) ? 'text-blue-800' : 'text-orange-800'}`}>
+                              {calculosFlujoCaja.tir >= parseNumber(tasaDescuento) ? (
+                                <p><strong>✓ Rentabilidad atractiva:</strong> La TIR ({calculosFlujoCaja.tir.toFixed(2)}%) supera la tasa de descuento ({tasaDescuento}%). El proyecto es más rentable que el costo de oportunidad.</p>
+                              ) : (
+                                <p><strong>⚠ Rentabilidad baja:</strong> La TIR ({calculosFlujoCaja.tir.toFixed(2)}%) es menor que la tasa de descuento ({tasaDescuento}%). Considere otras alternativas de inversión.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                      <h3 className="font-bold text-blue-900 mb-3">💡 Instrucciones de Uso</h3>
+                      <ul className="space-y-2 text-sm text-blue-800">
+                        <li>✓ <strong>Configura los períodos:</strong> Define cuántos meses históricos ingresarás y cuántos meses quieres proyectar</li>
+                        <li>✓ <strong>Ingresa datos históricos:</strong> Completa las celdas azules con información real de tu negocio</li>
+                        <li>✓ <strong>Personaliza rubros:</strong> Edita los nombres de ingresos y egresos según tu negocio</li>
+                        <li>✓ <strong>Agrega más conceptos:</strong> Usa los botones "+ Agregar Ingreso/Egreso" para añadir más líneas</li>
+                        <li>✓ <strong>Proyecciones automáticas:</strong> Las celdas verdes se calculan automáticamente usando el promedio histórico y la tasa de crecimiento</li>
+                        <li>✓ <strong>Formato automático:</strong> Los números se formatean automáticamente con separadores de miles</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'indicadores' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Diagnóstico Financiero Integral</h2>
+                      <p className="text-gray-600">Análisis completo de los indicadores financieros de la empresa</p>
+                    </div>
+
+                    {/* I. INDICADORES DE LIQUIDEZ */}
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">I. Indicadores de Liquidez</h3>
+                          <p className="text-sm text-gray-600">Capacidad de la empresa para cumplir obligaciones de corto plazo</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="border-l-4 border-blue-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Razón Corriente</div>
+                            <Tooltip text={definiciones.razonCorriente}>
+                              <HelpCircle className="w-4 h-4 text-blue-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-3xl font-bold text-blue-600">
+                            {indicadoresCompletos.liquidez.razonCorriente.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Activo Corriente / Pasivo Corriente</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.liquidez.razonCorriente >= 1.5 ? 'text-green-600' :
+                            indicadoresCompletos.liquidez.razonCorriente >= 1 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.liquidez.razonCorriente >= 1.5 ? '✓ Excelente' :
+                             indicadoresCompletos.liquidez.razonCorriente >= 1 ? '⚠ Aceptable' :
+                             '✗ Bajo'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-cyan-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Prueba Ácida</div>
+                            <Tooltip text={definiciones.pruebaAcida}>
+                              <HelpCircle className="w-4 h-4 text-cyan-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-3xl font-bold text-cyan-600">
+                            {indicadoresCompletos.liquidez.pruebaAcida.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">(AC - Inventarios) / PC</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.liquidez.pruebaAcida >= 1 ? 'text-green-600' :
+                            indicadoresCompletos.liquidez.pruebaAcida >= 0.5 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.liquidez.pruebaAcida >= 1 ? '✓ Excelente' :
+                             indicadoresCompletos.liquidez.pruebaAcida >= 0.5 ? '⚠ Aceptable' :
+                             '✗ Bajo'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-teal-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Capital de Trabajo</div>
+                            <Tooltip text={definiciones.capitalTrabajo}>
+                              <HelpCircle className="w-4 h-4 text-teal-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-3xl font-bold text-teal-600">
+                            ${formatNumber(indicadoresCompletos.liquidez.capitalTrabajo)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Activo Corriente - Pasivo Corriente</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.liquidez.capitalTrabajo > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.liquidez.capitalTrabajo > 0 ? '✓ Positivo' : '✗ Negativo'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-sky-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm text-gray-600">Razón de Efectivo</div>
+                            <Tooltip text={definiciones.razonEfectivo}>
+                              <HelpCircle className="w-4 h-4 text-sky-500 cursor-help" />
+                            </Tooltip>
+                          </div>
+                          <div className="text-3xl font-bold text-sky-600">
+                            {indicadoresCompletos.liquidez.razonEfectivo.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">(Efectivo + Inv Temp) / PC</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.liquidez.razonEfectivo >= 0.5 ? 'text-green-600' :
+                            indicadoresCompletos.liquidez.razonEfectivo >= 0.2 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.liquidez.razonEfectivo >= 0.5 ? '✓ Excelente' :
+                             indicadoresCompletos.liquidez.razonEfectivo >= 0.2 ? '⚠ Aceptable' :
+                             '✗ Bajo'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* II. INDICADORES DE ENDEUDAMIENTO */}
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                          <AlertCircle className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">II. Indicadores de Endeudamiento</h3>
+                          <p className="text-sm text-gray-600">Nivel de apalancamiento y estructura de capital</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <div className="border-l-4 border-red-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Endeudamiento Total</div><Tooltip text={definiciones.endeudamientoTotal}><HelpCircle className="w-4 h-4 text-red-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-red-600">
+                            {indicadoresCompletos.endeudamiento.endeudamientoTotal.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Pasivo Total / Activo Total</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.endeudamiento.endeudamientoTotal <= 50 ? 'text-green-600' :
+                            indicadoresCompletos.endeudamiento.endeudamientoTotal <= 70 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.endeudamiento.endeudamientoTotal <= 50 ? '✓ Bajo' :
+                             indicadoresCompletos.endeudamiento.endeudamientoTotal <= 70 ? '⚠ Medio' :
+                             '✗ Alto'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-orange-500 pl-4">
+                          <div className="text-sm text-gray-600 mb-1">Endeudamiento Patrimonial</div>
+                          <div className="text-3xl font-bold text-orange-600">
+                            {indicadoresCompletos.endeudamiento.endeudamientoPatrimonial.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Pasivo Total / Patrimonio</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.endeudamiento.endeudamientoPatrimonial <= 100 ? 'text-green-600' :
+                            indicadoresCompletos.endeudamiento.endeudamientoPatrimonial <= 200 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.endeudamiento.endeudamientoPatrimonial <= 100 ? '✓ Bajo' :
+                             indicadoresCompletos.endeudamiento.endeudamientoPatrimonial <= 200 ? '⚠ Medio' :
+                             '✗ Alto'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-rose-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Apalancamiento</div><Tooltip text={definiciones.apalancamiento}><HelpCircle className="w-4 h-4 text-yellow-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-rose-600">
+                            {indicadoresCompletos.endeudamiento.apalancamiento.toFixed(2)}x
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Activo Total / Patrimonio</div>
+                          <div className="text-xs text-gray-600 mt-2">
+                            Multiplicador de capital
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-pink-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Concentración CP</div><Tooltip text={definiciones.concentracionCP}><HelpCircle className="w-4 h-4 text-pink-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-pink-600">
+                            {indicadoresCompletos.endeudamiento.concentracionCP.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Pasivo Corriente / Pasivo Total</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.endeudamiento.concentracionCP <= 50 ? 'text-green-600' : 'text-yellow-600'
+                          }`}>
+                            {indicadoresCompletos.endeudamiento.concentracionCP <= 50 ? '✓ Bajo riesgo' : '⚠ Revisar'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-fuchsia-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Autonomía</div><Tooltip text={definiciones.autonomia}><HelpCircle className="w-4 h-4 text-fuchsia-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-fuchsia-600">
+                            {indicadoresCompletos.endeudamiento.autonomia.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Patrimonio / Activo Total</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.endeudamiento.autonomia >= 50 ? 'text-green-600' : 'text-yellow-600'
+                          }`}>
+                            {indicadoresCompletos.endeudamiento.autonomia >= 50 ? '✓ Alta' : '⚠ Media'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 p-4 bg-red-50 rounded-lg">
+                        <div className="text-sm text-red-800">
+                          <strong>Cobertura de Intereses:</strong> {indicadoresCompletos.otros.coberturaIntereses.toFixed(2)}x 
+                          {indicadoresCompletos.otros.coberturaIntereses >= 2 ? 
+                            ' - ✓ Capacidad sólida para pagar intereses' : 
+                            ' - ⚠ Revisar capacidad de pago'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* III. INDICADORES DE RENTABILIDAD */}
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">III. Indicadores de Rentabilidad</h3>
+                          <p className="text-sm text-gray-600">Capacidad de generar utilidades y retorno sobre inversión</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                        <div className="border-l-4 border-green-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">ROE</div><Tooltip text={definiciones.roe}><HelpCircle className="w-4 h-4 text-green-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-green-600">
+                            {indicadoresCompletos.rentabilidad.roe.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Utilidad Neta / Patrimonio</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.rentabilidad.roe >= 15 ? 'text-green-600' :
+                            indicadoresCompletos.rentabilidad.roe >= 10 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.rentabilidad.roe >= 15 ? '✓ Excelente' :
+                             indicadoresCompletos.rentabilidad.roe >= 10 ? '⚠ Aceptable' :
+                             '✗ Bajo'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-emerald-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">ROA</div><Tooltip text={definiciones.roa}><HelpCircle className="w-4 h-4 text-emerald-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-emerald-600">
+                            {indicadoresCompletos.rentabilidad.roa.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Utilidad Neta / Activo Total</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.rentabilidad.roa >= 10 ? 'text-green-600' :
+                            indicadoresCompletos.rentabilidad.roa >= 5 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.rentabilidad.roa >= 10 ? '✓ Excelente' :
+                             indicadoresCompletos.rentabilidad.roa >= 5 ? '⚠ Aceptable' :
+                             '✗ Bajo'}
+                          </div>
+                        </div>
+
+                        <div className="border-l-4 border-teal-500 pl-4">
+                          <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Margen EBITDA</div><Tooltip text={definiciones.margenEbitda}><HelpCircle className="w-4 h-4 text-teal-500 cursor-help" /></Tooltip></div>
+                          <div className="text-3xl font-bold text-teal-600">
+                            {indicadoresCompletos.rentabilidad.margenEbitda.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">EBITDA / Ingresos</div>
+                          <div className={`text-xs mt-2 font-semibold ${
+                            indicadoresCompletos.rentabilidad.margenEbitda >= 20 ? 'text-green-600' :
+                            indicadoresCompletos.rentabilidad.margenEbitda >= 10 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {indicadoresCompletos.rentabilidad.margenEbitda >= 20 ? '✓ Alto' :
+                             indicadoresCompletos.rentabilidad.margenEbitda >= 10 ? '⚠ Medio' :
+                             '✗ Bajo'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <h4 className="font-semibold text-green-900 mb-3">Márgenes de Utilidad</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Margen Bruto</div><Tooltip text={definiciones.margenBruto}><HelpCircle className="w-4 h-4 text-green-600 cursor-help" /></Tooltip></div>
+                            <div className="text-2xl font-bold text-green-700">
+                              {indicadoresCompletos.rentabilidad.margenBruto.toFixed(1)}%
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                              <div className="bg-green-600 h-2 rounded-full" style={{width: `${Math.min(indicadoresCompletos.rentabilidad.margenBruto, 100)}%`}}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Margen Operacional</div><Tooltip text={definiciones.margenOperacional}><HelpCircle className="w-4 h-4 text-green-600 cursor-help" /></Tooltip></div>
+                            <div className="text-2xl font-bold text-green-700">
+                              {indicadoresCompletos.rentabilidad.margenOperacional.toFixed(1)}%
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                              <div className="bg-green-600 h-2 rounded-full" style={{width: `${Math.min(indicadoresCompletos.rentabilidad.margenOperacional, 100)}%`}}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Margen Neto</div><Tooltip text={definiciones.margenNeto}><HelpCircle className="w-4 h-4 text-green-600 cursor-help" /></Tooltip></div>
+                            <div className="text-2xl font-bold text-green-700">
+                              {indicadoresCompletos.rentabilidad.margenNeto.toFixed(1)}%
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                              <div className="bg-green-600 h-2 rounded-full" style={{width: `${Math.min(indicadoresCompletos.rentabilidad.margenNeto, 100)}%`}}></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* IV. INDICADORES DE EFICIENCIA */}
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <Settings className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900">IV. Indicadores de Eficiencia Operativa</h3>
+                          <p className="text-sm text-gray-600">Uso efectivo de los recursos y gestión del capital de trabajo</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="border-l-4 border-purple-500 pl-4">
+                            <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Rotación de Activos</div><Tooltip text={definiciones.rotacionActivos}><HelpCircle className="w-4 h-4 text-purple-500 cursor-help" /></Tooltip></div>
+                            <div className="text-3xl font-bold text-purple-600">
+                              {indicadoresCompletos.eficiencia.rotacionActivos.toFixed(2)}x
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">Ventas / Activo Total</div>
+                            <div className={`text-xs mt-2 font-semibold ${
+                              indicadoresCompletos.eficiencia.rotacionActivos >= 1 ? 'text-green-600' : 'text-yellow-600'
+                            }`}>
+                              {indicadoresCompletos.eficiencia.rotacionActivos >= 1 ? '✓ Eficiente' : '⚠ Mejorar'}
+                            </div>
+                          </div>
+
+                          <div className="border-l-4 border-violet-500 pl-4">
+                            <div className="text-sm text-gray-600 mb-1">Rotación de Inventarios</div>
+                            <div className="text-3xl font-bold text-violet-600">
+                              {indicadoresCompletos.eficiencia.rotacionInventarios.toFixed(1)}x
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">Costo Ventas / Inventarios</div>
+                            <div className="text-xs text-gray-600 mt-2">
+                              {indicadoresCompletos.eficiencia.diasInventario.toFixed(0)} días en inventario
+                            </div>
+                          </div>
+
+                          <div className="border-l-4 border-indigo-500 pl-4">
+                            <div className="text-sm text-gray-600 mb-1">Rotación de CxC</div>
+                            <div className="text-3xl font-bold text-indigo-600">
+                              {indicadoresCompletos.eficiencia.rotacionCxC.toFixed(1)}x
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">Ventas / Cuentas por Cobrar</div>
+                            <div className="text-xs text-gray-600 mt-2">
+                              {indicadoresCompletos.eficiencia.diasCxC.toFixed(0)} días de cobro
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-purple-50 p-6 rounded-lg">
+                          <h4 className="font-semibold text-purple-900 mb-4">Ciclo de Conversión de Efectivo</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="text-center">
+                              <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Días de Inventario</div><Tooltip text={definiciones.diasInventario}><HelpCircle className="w-4 h-4 text-blue-500 cursor-help" /></Tooltip></div>
+                              <div className="text-3xl font-bold text-purple-600">
+                                {indicadoresCompletos.eficiencia.diasInventario.toFixed(0)}
+                              </div>
+                            </div>
+                            <div className="text-center flex items-center justify-center">
+                              <Plus className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <div className="text-center">
+                              <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Días de Cobro</div><Tooltip text={definiciones.diasCxC}><HelpCircle className="w-4 h-4 text-purple-600 cursor-help" /></Tooltip></div>
+                              <div className="text-3xl font-bold text-purple-600">
+                                {indicadoresCompletos.eficiencia.diasCxC.toFixed(0)}
+                              </div>
+                            </div>
+                            <div className="text-center flex items-center justify-center">
+                              <Trash className="w-6 h-6 text-gray-400" />
+                            </div>
+                          </div>
+                          <div className="text-center mt-4">
+                            <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Días de Pago</div><Tooltip text={definiciones.diasCxP}><HelpCircle className="w-4 h-4 text-purple-600 cursor-help" /></Tooltip></div>
+                            <div className="text-2xl font-bold text-gray-600">
+                              {indicadoresCompletos.eficiencia.diasCxP.toFixed(0)}
+                            </div>
+                          </div>
+                          <div className="mt-6 pt-4 border-t-2 border-purple-200 text-center">
+                            <div className="flex items-center gap-2 mb-1"><div className="text-sm text-gray-600">Ciclo Total</div><Tooltip text={definiciones.cicloConversion}><HelpCircle className="w-4 h-4 text-purple-700 cursor-help" /></Tooltip></div>
+                            <div className="text-4xl font-bold text-purple-700">
+                              {indicadoresCompletos.eficiencia.cicloConversion.toFixed(0)} días
+                            </div>
+                            <div className={`text-sm mt-2 font-semibold ${
+                              indicadoresCompletos.eficiencia.cicloConversion <= 30 ? 'text-green-600' :
+                              indicadoresCompletos.eficiencia.cicloConversion <= 60 ? 'text-yellow-600' :
+                              'text-red-600'
+                            }`}>
+                              {indicadoresCompletos.eficiencia.cicloConversion <= 30 ? '✓ Excelente gestión del capital de trabajo' :
+                               indicadoresCompletos.eficiencia.cicloConversion <= 60 ? '⚠ Gestión aceptable' :
+                               '✗ Mejorar gestión del capital de trabajo'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Resumen Ejecutivo */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 border border-blue-200">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">📊 Resumen Ejecutivo</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-800 mb-3">Fortalezas Identificadas:</h4>
+                          <ul className="space-y-2 text-sm">
+                            {indicadoresCompletos.liquidez.razonCorriente >= 1.5 && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span>Excelente posición de liquidez para enfrentar obligaciones de corto plazo</span>
+                              </li>
+                            )}
+                            {indicadoresCompletos.rentabilidad.roe >= 15 && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span>Alta rentabilidad sobre el patrimonio (ROE)</span>
+                              </li>
+                            )}
+                            {indicadoresCompletos.endeudamiento.endeudamientoTotal <= 50 && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span>Bajo nivel de endeudamiento, buena autonomía financiera</span>
+                              </li>
+                            )}
+                            {indicadoresCompletos.eficiencia.cicloConversion <= 30 && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span>Eficiente gestión del capital de trabajo</span>
+                              </li>
+                            )}
+                            {(indicadoresCompletos.liquidez.razonCorriente < 1.5 && 
+                              indicadoresCompletos.rentabilidad.roe < 15 && 
+                              indicadoresCompletos.endeudamiento.endeudamientoTotal > 50 &&
+                              indicadoresCompletos.eficiencia.cicloConversion > 30) && (
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <span>Analiza los indicadores detallados para identificar oportunidades de mejora</span>
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800 mb-3">Áreas de Mejora:</h4>
+                          <ul className="space-y-2 text-sm">
+                            {indicadoresCompletos.liquidez.razonCorriente < 1 && (
+                              <li className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                <span>Fortalecer la liquidez para mejorar capacidad de pago de corto plazo</span>
+                              </li>
+                            )}
+                            {indicadoresCompletos.rentabilidad.roe < 10 && (
+                              <li className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                <span>Mejorar rentabilidad sobre el patrimonio mediante mayor eficiencia</span>
+                              </li>
+                            )}
+                            {indicadoresCompletos.endeudamiento.endeudamientoTotal > 70 && (
+                              <li className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                <span>Reducir nivel de endeudamiento para disminuir riesgo financiero</span>
+                              </li>
+                            )}
+                            {indicadoresCompletos.eficiencia.cicloConversion > 60 && (
+                              <li className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                <span>Optimizar gestión de inventarios y cobros para liberar capital de trabajo</span>
+                              </li>
+                            )}
+                            {(indicadoresCompletos.liquidez.razonCorriente >= 1 && 
+                              indicadoresCompletos.rentabilidad.roe >= 10 && 
+                              indicadoresCompletos.endeudamiento.endeudamientoTotal <= 70 &&
+                              indicadoresCompletos.eficiencia.cicloConversion <= 60) && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span>Los indicadores principales están en rangos saludables</span>
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'inversiones' && (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Opciones de Inversión</h2>
+                        <p className="text-gray-600">Simula tu inversión con el excedente disponible</p>
+                      </div>
+                      <button
+                        onClick={actualizarTasasInversion}
+                        disabled={actualizandoTasas}
+                        className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all ${
+                          actualizandoTasas 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl'
+                        }`}
+                      >
+                        <TrendingUp className="w-5 h-5" />
+                        {actualizandoTasas ? 'Actualizando...' : 'Actualizar Tasas'}
+                      </button>
+                    </div>
+
+                    {ultimaActualizacion && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                          <span className="font-semibold">Última actualización:</span> {ultimaActualizacion.toLocaleString('es-CO', { 
+                            day: '2-digit', 
+                            month: 'long', 
+                            year: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                      </div>
+                    )}
+
+                    {calculosFlujoCaja.flujos[totalMeses]?.flujoAcumulado >= 0 ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                          <div className="flex-1">
+                            <h3 className="font-bold text-green-900 mb-2">¡Excelente! Hay excedentes disponibles para invertir</h3>
+                            <div className="flex items-center gap-4">
+                              <p className="text-green-800">
+                                Excedente acumulado: <span className="font-bold text-xl">
+                                  ${formatNumber(calculosFlujoCaja.flujos[totalMeses]?.flujoAcumulado || 0)}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+                          <div>
+                            <h3 className="font-bold text-yellow-900 mb-2">No hay excedentes disponibles</h3>
+                            <p className="text-yellow-800">
+                              Déficit: <span className="font-bold">
+                                ${formatNumber(Math.abs(calculosFlujoCaja.flujos[totalMeses]?.flujoAcumulado || 0))}
+                              </span>
+                            </p>
+                            <p className="text-sm text-yellow-700 mt-2">
+                              Mejora tu flujo de caja antes de considerar inversiones.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-xl font-bold mb-6 text-gray-900">
+                        🏆 Simulador de Inversión - Mejores Productos (Colombia)
+                      </h3>
+                      
+                      <div className="space-y-6">
+                        {productosInversion.map((producto, index) => {
+                          const excedente = Math.max(0, calculosFlujoCaja.flujos[totalMeses]?.flujoAcumulado || 0);
+                          const puedeInvertir = excedente >= producto.montoMinimo;
+                          const montoInvertir = puedeInvertir ? excedente : 0;
+                          const gananciaAnual = montoInvertir * (producto.tasa / 100);
+                          const totalRecuperado = montoInvertir + gananciaAnual;
+                          
+                          const colores = [
+                            { border: 'border-green-200', bg: 'from-green-50 to-emerald-50', badge: 'bg-green-600', text: 'text-green-700' },
+                            { border: 'border-blue-200', bg: 'from-blue-50 to-indigo-50', badge: 'bg-blue-600', text: 'text-blue-700' },
+                            { border: 'border-purple-200', bg: 'from-purple-50 to-pink-50', badge: 'bg-purple-600', text: 'text-purple-700' },
+                            { border: 'border-orange-200', bg: 'from-orange-50 to-yellow-50', badge: 'bg-orange-600', text: 'text-orange-700' },
+                            { border: 'border-red-200', bg: 'from-red-50 to-rose-50', badge: 'bg-red-600', text: 'text-red-700' }
+                          ];
+                          const color = colores[index] || colores[0];
+
+                          return (
+                            <div key={producto.id} className={`border-2 ${color.border} rounded-xl p-6 bg-gradient-to-r ${color.bg} hover:shadow-lg transition-all ${!puedeInvertir && 'opacity-60'}`}>
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className={`${color.badge} text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg`}>
+                                    {index + 1}
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-gray-900 text-lg">{producto.nombre}</h4>
+                                    <p className="text-sm text-gray-600">{producto.descripcion}</p>
+                                  </div>
+                                </div>
+                                <div className={`${color.badge} text-white px-4 py-2 rounded-lg font-bold`}>
+                                  {producto.tasa.toFixed(1)}% EA{producto.tasaVariable && '*'}
+                                </div>
+                              </div>
+
+                              {/* Simulación de Inversión */}
+                              {puedeInvertir ? (
+                                <div className="bg-white rounded-lg p-4 mb-4 border-2 border-dashed ${color.border}">
+                                  <h5 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Calculator className="w-5 h-5" />
+                                    Simulación con tu excedente
+                                  </h5>
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                      <div className="text-xs text-gray-600 mb-1">Monto a invertir</div>
+                                      <div className={`font-bold text-lg ${color.text}`}>
+                                        ${formatNumber(montoInvertir)}
+                                      </div>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                      <div className="text-xs text-gray-600 mb-1">Ganancia anual</div>
+                                      <div className="font-bold text-lg text-green-600">
+                                        +${formatNumber(gananciaAnual)}
+                                      </div>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                      <div className="text-xs text-gray-600 mb-1">Total al año</div>
+                                      <div className={`font-bold text-lg ${color.text}`}>
+                                        ${formatNumber(totalRecuperado)}
+                                      </div>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                      <div className="text-xs text-gray-600 mb-1">Ganancia mensual</div>
+                                      <div className="font-bold text-lg text-blue-600">
+                                        ${formatNumber(gananciaAnual / 12)}/mes
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                  <div className="flex items-center gap-2 text-yellow-800 text-sm">
+                                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                    <span>
+                                      <span className="font-semibold">Monto mínimo requerido:</span> ${formatNumber(producto.montoMinimo)}
+                                      {' '}(Te faltan ${formatNumber(producto.montoMinimo - excedente)})
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div className="bg-white rounded-lg p-3">
+                                  <div className="text-xs text-gray-600 mb-1">Plazo</div>
+                                  <div className={`font-bold ${color.text}`}>{producto.plazo}</div>
+                                </div>
+                                <div className="bg-white rounded-lg p-3">
+                                  <div className="text-xs text-gray-600 mb-1">Monto mínimo</div>
+                                  <div className={`font-bold ${color.text}`}>${formatNumber(producto.montoMinimo)}</div>
+                                </div>
+                                <div className="bg-white rounded-lg p-3">
+                                  <div className="text-xs text-gray-600 mb-1">Riesgo</div>
+                                  <div className={`font-bold ${color.text}`}>{producto.riesgo}</div>
+                                </div>
+                              </div>
+                              <div className="text-sm text-gray-700">
+                                <span className="font-semibold">Ventajas:</span> {producto.ventajas}
+                                <span className="font-semibold ml-2">Ideal para:</span> {producto.ideal}
+                              </div>
+                              {producto.tasaVariable && (
+                                <div className="text-xs text-gray-500 mt-2 italic">
+                                  *Rentabilidad variable según desempeño del mercado
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-blue-900">
+                            <p className="font-semibold mb-2">Recomendaciones de diversificación:</p>
+                            <ul className="space-y-1 ml-4">
+                              <li>• <span className="font-semibold">Conservador:</span> 70% CDT + 20% Fondos RF + 10% Digital</li>
+                              <li>• <span className="font-semibold">Moderado:</span> 40% CDT + 30% Fondos RF + 20% TES + 10% Acciones</li>
+                              <li>• <span className="font-semibold">Agresivo:</span> 30% CDT + 20% Fondos RF + 50% Acciones</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-yellow-900">
+                            <span className="font-semibold">Nota:</span> Las tasas pueden variar según el monto, plazo y condiciones del mercado. 
+                            Se recomienda consultar directamente con cada entidad financiera para obtener las condiciones actualizadas.
+                            Las simulaciones son referenciales y asumen reinversión al vencimiento.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </main>
+
+              <footer className="bg-gray-800 text-gray-300 mt-12">
+                <div className="container mx-auto px-4 py-6 text-center text-sm">
+                  <p>© 2025 Sistema de Diagnóstico Financiero - Desarrollado para el mercado colombiano</p>
+                </div>
+              </footer>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<DiagnosticoFinanciero />, document.getElementById('root'));
+    </script>
+</body>
+</html>
